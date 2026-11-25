@@ -64,9 +64,9 @@ Item {
         running: false
         from: 0
         to: 1
-        duration: 440
-        easing.type: Easing.BezierSpline
-        easing.bezierCurve: [0.22, 1.0, 0.36, 1.0, 1.0, 1.0]
+        duration: 480
+        easing.type: Easing.OutBack
+        easing.overshoot: 0.55
     }
     FrameAnimation {
         running: flyer.visible

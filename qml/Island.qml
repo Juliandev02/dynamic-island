@@ -371,28 +371,40 @@ Item {
     // Tucked behind a full-screen app the pill is a zero-height sliver; its contents mustn't spill out.
     clip: tucked
 
-    // Shared fluid motion curve (silky deceleration without rubbery overshoot).
+    // Shared iOS-like spring motion: lively organic bounce when expanding, gentle tactile settle when shrinking.
     // animationScale multiplies all transition durations (0 = instant, 1 = default).
     property real animationScale: 1.0
     readonly property var fluidCurve: [0.22, 1.0, 0.36, 1.0, 1.0, 1.0]
-    readonly property int morphDuration: Math.max(0, Math.round(460 * animationScale))
+    readonly property int morphDuration: Math.max(0, Math.round(500 * animationScale))
     readonly property int tuckDuration: Math.max(0, Math.round(340 * animationScale))
-    readonly property int lyricDuration: Math.max(0, Math.round(320 * animationScale))
+    readonly property int lyricDuration: Math.max(0, Math.round(340 * animationScale))
+    readonly property real springOvershoot: (size.w >= width && size.h >= height) ? 0.72 : 0.32
 
-    // Folding away glides cleanly without overshoot; normal state changes use the shared fluid curve
-    // so width, height and corner radii always stay in lockstep.
+    // Subtle iOS-style press squish on the closed pill.
+    scale: !open && pillMouse.pressed ? 0.965 : 1.0
+    Behavior on scale {
+        NumberAnimation {
+            duration: Math.max(0, Math.round((pillMouse.pressed ? 110 : 380) * island.animationScale))
+            easing.type: pillMouse.pressed ? Easing.OutQuad : Easing.OutBack
+            easing.overshoot: 0.9
+        }
+    }
+
+    // Folding away glides cleanly without overshoot; lyric width settles smoothly; state morphs use
+    // an iOS-style spring so width, height and corner radii always bounce in lockstep.
     Behavior on width {
         NumberAnimation {
             duration: island.showsLyricLine ? island.lyricDuration : (island.tucked ? island.tuckDuration : island.morphDuration)
-            easing.type: island.tucked ? Easing.InOutCubic : Easing.BezierSpline
+            easing.type: island.showsLyricLine ? Easing.BezierSpline : (island.tucked ? Easing.InOutCubic : Easing.OutBack)
             easing.bezierCurve: island.fluidCurve
+            easing.overshoot: island.springOvershoot
         }
     }
     Behavior on height {
         NumberAnimation {
             duration: island.tucked ? island.tuckDuration : island.morphDuration
-            easing.type: island.tucked ? Easing.InOutCubic : Easing.BezierSpline
-            easing.bezierCurve: island.fluidCurve
+            easing.type: island.tucked ? Easing.InOutCubic : Easing.OutBack
+            easing.overshoot: island.springOvershoot
         }
     }
 
@@ -487,21 +499,21 @@ Item {
         objectName: "islandShape"
         // 0 is notch, 1 is pill.
         property real p: island.pill ? 1 : 0
-        Behavior on p { NumberAnimation { duration: Math.max(0, Math.round(500 * island.animationScale)); easing.type: Easing.BezierSpline; easing.bezierCurve: island.fluidCurve } }
+        Behavior on p { NumberAnimation { duration: Math.max(0, Math.round(520 * island.animationScale)); easing.type: Easing.OutBack; easing.overshoot: 0.55 } }
         property real notchR: island.size.r
         property real pillR: Math.min(island.size.h / 2, Math.max(island.size.r, island.barHeight / 2))
         Behavior on notchR {
             NumberAnimation {
                 duration: island.tucked ? island.tuckDuration : island.morphDuration
-                easing.type: island.tucked ? Easing.InOutCubic : Easing.BezierSpline
-                easing.bezierCurve: island.fluidCurve
+                easing.type: island.tucked ? Easing.InOutCubic : Easing.OutBack
+                easing.overshoot: island.springOvershoot
             }
         }
         Behavior on pillR {
             NumberAnimation {
                 duration: island.tucked ? island.tuckDuration : island.morphDuration
-                easing.type: island.tucked ? Easing.InOutCubic : Easing.BezierSpline
-                easing.bezierCurve: island.fluidCurve
+                easing.type: island.tucked ? Easing.InOutCubic : Easing.OutBack
+                easing.overshoot: island.springOvershoot
             }
         }
         readonly property real r: notchR + (pillR - notchR) * p
@@ -540,6 +552,7 @@ Item {
     readonly property bool musicShown: activity === "music" && player !== null && (mode === "compact" || mode === "peek")
     property real verticalAccum: 0
     MouseArea {
+        id: pillMouse
         anchors.fill: parent
         acceptedButtons: Qt.LeftButton | Qt.MiddleButton | Qt.RightButton
         onPressed: island.pressedForTrace()
@@ -1650,9 +1663,9 @@ Item {
         border.width: island.lightLook || splitArea.containsMouse ? 1 : 0
         border.color: splitArea.containsMouse ? Qt.rgba(palette.windowText.r, palette.windowText.g, palette.windowText.b, 0.25) : Qt.rgba(0, 0, 0, 0.14)
 
-        Behavior on x { NumberAnimation { duration: island.morphDuration; easing.type: Easing.BezierSpline; easing.bezierCurve: island.fluidCurve } }
-        Behavior on opacity { NumberAnimation { duration: Math.max(0, Math.round(280 * island.animationScale)); easing.type: Easing.OutCubic } }
-        Behavior on scale { NumberAnimation { duration: island.morphDuration; easing.type: Easing.BezierSpline; easing.bezierCurve: island.fluidCurve } }
+        Behavior on x { NumberAnimation { duration: island.morphDuration; easing.type: Easing.OutBack; easing.overshoot: 0.9 } }
+        Behavior on opacity { NumberAnimation { duration: Math.max(0, Math.round(260 * island.animationScale)); easing.type: Easing.OutCubic } }
+        Behavior on scale { NumberAnimation { duration: island.morphDuration; easing.type: Easing.OutBack; easing.overshoot: 1.0 } }
 
         Row {
             id: splitContent
