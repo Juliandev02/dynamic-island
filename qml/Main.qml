@@ -43,11 +43,12 @@ Window {
         })
     }
     function updateInputRegion() {
-        InputRegion.set(root, island.inputRect)
+        InputRegion.set(root, island.inputRect, island.splitInputRect)
         updateBlur()
     }
     function updateBlur() {
-        InputRegion.setBlur(root, island.inputRect, island.blurRadius, island.blurBehind && island.translucent && island.height > 0.5)
+        InputRegion.setBlur(root, island.inputRect, island.blurRadius, island.blurBehind && island.translucent && island.height > 0.5,
+                            island.splitInputRect, island.splitBlurRadius)
     }
 
     Prefs {
@@ -206,6 +207,15 @@ Window {
     UpdatesWatcher {
         id: updatesWatcher
         enabled: prefs.idle.mode === "glances" && prefs.idle.updates
+    }
+
+    TaskWatcher {
+        id: taskWatcher
+        enabled: prefs.show.tasks && !SystemStatus.userIdle
+        onTaskFinished: (name, detail, elapsedSec) => {
+            if (!SystemStatus.dndActive(fullScreen.active))
+                root.queueAlert({ kind: "job", ok: true, title: I18n.t("Command finished"), body: detail + " · " + L.formatTime(elapsedSec * 1000000), folder: "" }, 4000)
+        }
     }
 
     CameraWatcher {
@@ -367,6 +377,7 @@ Window {
         sound: soundSource
         micApps: prefs.show.privacy ? soundSource.recorders : []
         jobs: jobsModel.summary
+        tasks: taskWatcher.tasks
         cameraApps: cameraWatcher.apps
         onNotificationClicked: (entry, origin) => WindowActivator.activate(entry, WindowActivator.originHint(origin), true)
         onNotificationAction: (serverId, key, entry, origin) => {
@@ -458,6 +469,7 @@ Window {
             calendarSource.refreshIfStale()
         }
         onInputRectChanged: root.scheduleInputRegionUpdate()
+        onSplitInputRectChanged: root.scheduleInputRegionUpdate()
         coveredByFullScreen: fullScreen.active
         onWantsFrontChanged: InputRegion.setLayer(root, wantsFront)
     }

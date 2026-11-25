@@ -497,7 +497,8 @@ QQC.ApplicationWindow {
                             { key: "devices", label: win.tr("Bluetooth devices connecting") },
                             { key: "meetings", label: win.tr("Join button for meetings") },
                             { key: "power", label: win.tr("Charger plugged in or out") },
-                            { key: "jobs", label: win.tr("Downloads and file copies") }
+                            { key: "jobs", label: win.tr("Downloads and file copies") },
+                            { key: "tasks", label: win.tr("Long-running commands (cmake, yay, …)") }
                         ]
                         delegate: QQC.CheckBox {
                             required property var modelData

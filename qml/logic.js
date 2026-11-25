@@ -357,7 +357,7 @@ function wheelSteps(accum, delta) {
 }
 
 // Things currently going on, in the order the closed pill cycles through them.
-function activities(hasPlayer, timerActive, hasJobs) {
+function activities(hasPlayer, timerActive, hasJobs, hasTask) {
     const list = []
     if (hasPlayer)
         list.push("music")
@@ -365,6 +365,8 @@ function activities(hasPlayer, timerActive, hasJobs) {
         list.push("timer")
     if (hasJobs)
         list.push("jobs")
+    if (hasTask)
+        list.push("task")
     return list
 }
 

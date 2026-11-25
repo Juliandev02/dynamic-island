@@ -13,10 +13,14 @@ QRect InputRegion::maskRect(const QRectF &rect)
     return r.isEmpty() ? QRect(r.topLeft(), QSize(1, 1)) : r;
 }
 
-void InputRegion::set(QWindow *window, const QRectF &rect)
+void InputRegion::set(QWindow *window, const QRectF &rect, const QRectF &extraRect)
 {
-    if (window)
-        window->setMask(QRegion(maskRect(rect)));
+    if (!window)
+        return;
+    QRegion region(maskRect(rect));
+    if (!extraRect.isEmpty())
+        region |= QRegion(maskRect(extraRect));
+    window->setMask(region);
 }
 
 void InputRegion::setKeyboard(QWindow *window, bool on, bool exclusive)
@@ -42,11 +46,14 @@ QRegion InputRegion::roundedRegion(const QRectF &rect, qreal radius)
     return QRegion(path.toFillPolygon().toPolygon());
 }
 
-void InputRegion::setBlur(QWindow *window, const QRectF &rect, qreal radius, bool on)
+void InputRegion::setBlur(QWindow *window, const QRectF &rect, qreal radius, bool on,
+                          const QRectF &extraRect, qreal extraRadius)
 {
     if (!window)
         return;
-    const QRegion region = roundedRegion(rect, radius);
+    QRegion region = roundedRegion(rect, radius);
+    if (!extraRect.isEmpty())
+        region |= roundedRegion(extraRect, extraRadius);
     KWindowEffects::enableBlurBehind(window, on && !region.isEmpty(), region);
 }
 

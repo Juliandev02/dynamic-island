@@ -14,7 +14,7 @@ QtObject {
         weather: { city: "", latitude: 0, longitude: 0, fahrenheit: false },
         quickButtons: { hidden: [] },
         panel: { time: true, date: true },
-        show: { levels: true, notifications: true, privacy: true, devices: true, meetings: true, power: true, jobs: true },
+        show: { levels: true, notifications: true, privacy: true, devices: true, meetings: true, power: true, jobs: true, tasks: true },
         idle: { mode: "glances", events: true, battery: true, time: true, weather: true, updates: false, todo: true, animateOnHoverOnly: true },
         history: { save: true, days: 7, system: true, apps: true, others: true, off: [] },
         fullScreen: { levels: true, jobs: true, privacy: true, devices: true, power: true, allNotifications: false, urgent: [] }
@@ -129,6 +129,7 @@ QtObject {
         property bool meetings: prefs.defaults.show.meetings
         property bool power: prefs.defaults.show.power
         property bool jobs: prefs.defaults.show.jobs
+        property bool tasks: prefs.defaults.show.tasks
     }
 
     // Notification history. off holds the keys of apps switched off. known is JSON text of the apps

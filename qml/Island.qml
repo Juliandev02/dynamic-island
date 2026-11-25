@@ -113,9 +113,14 @@ Item {
     readonly property bool hovered: hover.hovered
     // Not named `state`: Item already has a `state` property.
     readonly property bool timerActive: timer !== null && (timer.running || timer.paused)
-    readonly property var activities: L.activities(island.playing, timerActive, jobs.count > 0)
+    // Active long-running CLI/build tasks from TaskWatcher: [{ pid, name, detail, elapsedSec }].
+    property var tasks: []
+    readonly property var activities: L.activities(island.playing, timerActive, jobs.count > 0, tasks.length > 0)
     property int current: 0
     readonly property string activity: activities.length > 0 ? activities[current % activities.length] : ""
+    // iOS-style Split-Pill: when 2+ activities run, the next one detaches into a satellite bubble on the right.
+    readonly property bool showSplitPill: mode === "compact" && activities.length > 1 && !tucked
+    readonly property string secondaryActivity: activities.length > 1 ? activities[(current + 1) % activities.length] : ""
     property int cycleInterval: 6000
     property int swipeHold: 15000
     property int idleWidth: 180
@@ -339,7 +344,9 @@ Item {
                     : idleWidth) + indicatorWidth + historyChipWidth + chargingChipWidth + (hovered ? 8 : 0), h: barHeight, r: cornerRadius },
         compact: { w: compactPillWidth + indicatorWidth, h: barHeight, r: cornerRadius },
         // Music is wider for its previous / play-pause / next buttons.
-        peek: activity === "jobs" ? { w: 360, h: 22 + jobRows * 42, r: 20 } : { w: activity === "music" ? 390 : 330, h: 60, r: 20 },
+        peek: activity === "jobs" ? { w: 360, h: 22 + jobRows * 42, r: 20 }
+            : activity === "task" ? { w: 360, h: 22 + Math.min(Math.max(tasks.length, 1), 4) * 38, r: 20 }
+            : { w: activity === "music" ? 390 : 330, h: 60, r: 20 },
         // 14 + 18: panelLoader's top and bottom margins.
         tour: { w: 420, h: 116, r: 26 },
         menu: { w: 290, h: 16 + menuRows.length * 36, r: 22 },
@@ -356,6 +363,8 @@ Item {
     readonly property bool wantsFront: coveredByFullScreen && (open || alert !== null || height > 0.5)
     // Where the island sits in its parent; the window's input region must track position too, not just size.
     readonly property rect inputRect: Qt.rect(x, y, width, height)
+    readonly property rect splitInputRect: showSplitPill ? Qt.rect(x + splitBubble.x, y + splitBubble.y, splitBubble.width, splitBubble.height) : Qt.rect(0, 0, 0, 0)
+    readonly property real splitBlurRadius: splitBubble.radius
 
     width: size.w
     height: size.h
@@ -1000,6 +1009,7 @@ Item {
     readonly property bool showMusic: activity === "music" && (mode === "compact" || mode === "peek")
     readonly property bool showTimer: activity === "timer" && (mode === "compact" || mode === "peek")
     readonly property bool showJobs: activity === "jobs" && (mode === "compact" || mode === "peek")
+    readonly property bool showTask: activity === "task" && (mode === "compact" || mode === "peek")
     readonly property color jobInk: Qt.lighter(palette.accent, 1.45)
     readonly property color jobTile: Qt.rgba(palette.accent.r, palette.accent.g, palette.accent.b, 0.22)
     // Pomodoro phases colour the countdown: tomato while focusing, green on a break.
@@ -1471,6 +1481,269 @@ Item {
                 font.pixelSize: 12
             }
         }
+    }
+
+    // Long-running CLI/build commands (cmake, ninja, yay, cargo, rsync, …).
+    Slide {
+        shown: island.showTask
+
+        Rectangle {
+            id: taskTile
+            visible: island.mode === "compact"
+            x: 8
+            anchors.verticalCenter: parent.verticalCenter
+            width: 18
+            height: 18
+            radius: 6
+            color: island.jobTile
+            Kirigami.Icon {
+                anchors.centerIn: parent
+                width: 12
+                height: 12
+                source: "utilities-terminal-symbolic"
+                color: island.jobInk
+                isMask: true
+                SequentialAnimation on opacity {
+                    running: island.showTask && island.mode === "compact"
+                    loops: Animation.Infinite
+                    NumberAnimation { to: 0.4; duration: 900; easing.type: Easing.InOutSine }
+                    NumberAnimation { to: 1.0; duration: 900; easing.type: Easing.InOutSine }
+                }
+            }
+        }
+        Text {
+            objectName: "taskTitle"
+            visible: island.mode === "compact"
+            anchors.left: taskTile.right
+            anchors.leftMargin: 8
+            anchors.right: taskElapsed.left
+            anchors.rightMargin: 8
+            anchors.verticalCenter: parent.verticalCenter
+            text: island.tasks.length > 0 ? island.tasks[0].detail : ""
+            color: palette.windowText
+            font.pixelSize: 12
+            font.weight: Font.DemiBold
+            elide: Text.ElideRight
+        }
+        Text {
+            id: taskElapsed
+            objectName: "taskElapsed"
+            visible: island.mode === "compact"
+            anchors.right: parent.right
+            anchors.rightMargin: 12 + island.indicatorWidth
+            anchors.verticalCenter: parent.verticalCenter
+            text: island.tasks.length > 0 ? L.formatTime((island.tasks[0].elapsedSec || 0) * 1000000) : ""
+            color: island.jobInk
+            font.pixelSize: 12
+            font.weight: Font.DemiBold
+            font.features: { "tnum": 1 }
+        }
+        // Subtle indeterminate activity shimmer along the bottom edge.
+        Item {
+            visible: island.mode === "compact"
+            anchors.left: parent.left
+            anchors.right: parent.right
+            anchors.bottom: parent.bottom
+            anchors.leftMargin: 14
+            anchors.rightMargin: 14
+            anchors.bottomMargin: 1
+            height: 2
+            clip: true
+            Rectangle {
+                width: Math.max(28, parent.width * 0.28)
+                height: parent.height
+                radius: 1
+                color: palette.accent
+                opacity: 0.85
+                SequentialAnimation on x {
+                    running: island.showTask && island.mode === "compact"
+                    loops: Animation.Infinite
+                    NumberAnimation { from: -40; to: 260; duration: 1500; easing.type: Easing.InOutSine }
+                }
+            }
+        }
+
+        Column {
+            objectName: "tasksList"
+            visible: island.mode === "peek"
+            opacity: visible ? 1 : 0
+            Behavior on opacity { NumberAnimation { duration: 220; easing.type: Easing.OutCubic } }
+            anchors.fill: parent
+            anchors.topMargin: 11
+            anchors.leftMargin: 16
+            anchors.rightMargin: 16
+            Repeater {
+                model: island.mode === "peek" ? island.tasks.slice(0, 4) : []
+                delegate: Item {
+                    id: taskRow
+                    required property var modelData
+                    width: parent.width
+                    height: 38
+                    Rectangle {
+                        id: rowTaskTile
+                        anchors.verticalCenter: parent.verticalCenter
+                        width: 22
+                        height: 22
+                        radius: 7
+                        color: island.jobTile
+                        Kirigami.Icon {
+                            anchors.centerIn: parent
+                            width: 13
+                            height: 13
+                            source: "utilities-terminal-symbolic"
+                            color: island.jobInk
+                            isMask: true
+                        }
+                    }
+                    Column {
+                        anchors.left: rowTaskTile.right
+                        anchors.leftMargin: 10
+                        anchors.right: rowTaskTime.left
+                        anchors.rightMargin: 10
+                        anchors.verticalCenter: parent.verticalCenter
+                        spacing: 1
+                        Text {
+                            width: parent.width
+                            text: taskRow.modelData.name || ""
+                            color: palette.windowText
+                            font.pixelSize: 12
+                            font.weight: Font.DemiBold
+                            elide: Text.ElideRight
+                        }
+                        Text {
+                            width: parent.width
+                            text: taskRow.modelData.detail || ""
+                            color: palette.placeholderText
+                            font.pixelSize: 11
+                            elide: Text.ElideRight
+                        }
+                    }
+                    Text {
+                        id: rowTaskTime
+                        anchors.right: parent.right
+                        anchors.verticalCenter: parent.verticalCenter
+                        text: L.formatTime((taskRow.modelData.elapsedSec || 0) * 1000000)
+                        color: island.jobInk
+                        font.pixelSize: 12
+                        font.weight: Font.DemiBold
+                        font.features: { "tnum": 1 }
+                    }
+                }
+            }
+        }
+    }
+
+    // iOS-style detached Split-Pill satellite bubble on the right when 2+ activities run simultaneously.
+    Rectangle {
+        id: splitBubble
+        objectName: "splitBubble"
+        z: -1
+        y: 0
+        height: island.barHeight
+        width: Math.max(height, splitContent.implicitWidth + 16)
+        radius: height / 2
+        x: island.showSplitPill ? island.width + 8 : island.width - width
+        opacity: island.showSplitPill ? 1 : 0
+        scale: island.showSplitPill ? 1.0 : 0.72
+        visible: opacity > 0.01
+        color: Qt.rgba(island.palette.window.r, island.palette.window.g, island.palette.window.b, island.fillOpacity)
+        border.width: island.lightLook || splitArea.containsMouse ? 1 : 0
+        border.color: splitArea.containsMouse ? Qt.rgba(palette.windowText.r, palette.windowText.g, palette.windowText.b, 0.25) : Qt.rgba(0, 0, 0, 0.14)
+
+        Behavior on x { NumberAnimation { duration: island.morphDuration; easing.type: Easing.BezierSpline; easing.bezierCurve: island.fluidCurve } }
+        Behavior on opacity { NumberAnimation { duration: Math.max(0, Math.round(280 * island.animationScale)); easing.type: Easing.OutCubic } }
+        Behavior on scale { NumberAnimation { duration: island.morphDuration; easing.type: Easing.BezierSpline; easing.bezierCurve: island.fluidCurve } }
+
+        Row {
+            id: splitContent
+            anchors.centerIn: parent
+            spacing: 5
+
+            // Secondary = Music
+            CoverArt {
+                visible: island.secondaryActivity === "music"
+                anchors.verticalCenter: parent.verticalCenter
+                width: 18
+                height: 18
+                radius: 6
+                source: island.player ? island.artUrl : ""
+                fallbackIcon: island.player ? island.player.iconName || island.player.desktopEntry || "" : ""
+            }
+
+            // Secondary = Timer
+            Kirigami.Icon {
+                visible: island.secondaryActivity === "timer"
+                anchors.verticalCenter: parent.verticalCenter
+                width: 14
+                height: 14
+                source: "chronometer"
+                color: island.timer && island.timer.pomodoro ? island.timerTint : palette.windowText
+                isMask: true
+            }
+            Text {
+                visible: island.secondaryActivity === "timer"
+                anchors.verticalCenter: parent.verticalCenter
+                text: island.timerText
+                color: island.timerTint
+                font.pixelSize: 11
+                font.weight: Font.DemiBold
+                font.features: { "tnum": 1 }
+            }
+
+            // Secondary = Jobs
+            Kirigami.Icon {
+                visible: island.secondaryActivity === "jobs"
+                anchors.verticalCenter: parent.verticalCenter
+                width: 13
+                height: 13
+                source: "download-symbolic"
+                color: island.jobInk
+                isMask: true
+            }
+            Text {
+                visible: island.secondaryActivity === "jobs"
+                anchors.verticalCenter: parent.verticalCenter
+                text: island.jobs.percent + "%"
+                color: island.jobInk
+                font.pixelSize: 11
+                font.weight: Font.DemiBold
+                font.features: { "tnum": 1 }
+            }
+
+            // Secondary = CLI/Build Task
+            Kirigami.Icon {
+                visible: island.secondaryActivity === "task"
+                anchors.verticalCenter: parent.verticalCenter
+                width: 13
+                height: 13
+                source: "utilities-terminal-symbolic"
+                color: island.jobInk
+                isMask: true
+            }
+            Text {
+                visible: island.secondaryActivity === "task"
+                anchors.verticalCenter: parent.verticalCenter
+                text: island.tasks.length > 0 ? L.formatTime((island.tasks[0].elapsedSec || 0) * 1000000) : ""
+                color: island.jobInk
+                font.pixelSize: 11
+                font.weight: Font.DemiBold
+                font.features: { "tnum": 1 }
+            }
+        }
+
+        MouseArea {
+            id: splitArea
+            anchors.fill: parent
+            hoverEnabled: true
+            cursorShape: Qt.PointingHandCursor
+            onClicked: {
+                island.step(1)
+                swipePause.restart()
+            }
+        }
+        QQC.ToolTip.visible: splitArea.containsMouse
+        QQC.ToolTip.text: island.tr("Click to switch")
+        QQC.ToolTip.delay: 400
     }
 
     Row {
