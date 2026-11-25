@@ -1045,10 +1045,10 @@ Item {
         }
     }
 
-    // Shown on the music and timer turns while jobs run.
+    // Shown on the music and timer turns while jobs run, unless the Split-Pill already displays jobs.
     component JobChip: Rectangle {
         objectName: "jobChip"
-        visible: island.jobs.count > 0 && island.mode === "compact"
+        visible: island.jobs.count > 0 && island.mode === "compact" && !(island.showSplitPill && island.secondaryActivity === "jobs")
         anchors.verticalCenter: parent.verticalCenter
         width: chipRow.implicitWidth + 12
         height: 18
@@ -1714,9 +1714,10 @@ Item {
                 isMask: true
             }
             Text {
+                objectName: "splitJobsText"
                 visible: island.secondaryActivity === "jobs"
                 anchors.verticalCenter: parent.verticalCenter
-                text: island.jobs.percent + "%"
+                text: (island.jobs.count > 1 ? island.jobs.count + " · " : "") + island.jobs.percent + "%"
                 color: island.jobInk
                 font.pixelSize: 11
                 font.weight: Font.DemiBold

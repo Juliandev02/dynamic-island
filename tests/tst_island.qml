@@ -129,13 +129,17 @@ Item {
             island.cycleInterval = 100000
             island.jobs = jobsOf(3)
             compare(island.activity, "music")
+            compare(island.secondaryActivity, "jobs")
+            // Jobs show in the detached Split-Pill instead of duplicating inside the main pill.
             const chip = findChild(island, "jobChip")
-            tryCompare(chip, "visible", true)
-            compare(findChild(island, "jobChipText").text, "3 · 57%")
+            compare(chip.visible, false)
+            const split = findChild(island, "splitBubble")
+            tryCompare(split, "visible", true)
+            compare(findChild(island, "splitJobsText").text, "3 · 57%")
             island.jobs = jobsOf(1)
-            compare(findChild(island, "jobChipText").text, "57%")
+            compare(findChild(island, "splitJobsText").text, "57%")
             island.jobs = { shown: [], count: 0, percent: 0 }
-            tryCompare(chip, "visible", false)
+            tryCompare(split, "visible", false)
         }
 
         function test_input_rect_follows_position() {
