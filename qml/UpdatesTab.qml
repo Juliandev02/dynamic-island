@@ -1,5 +1,6 @@
 import QtQuick
 import QtQuick.Controls as QQC
+import "i18n.js" as I18n
 
 // The packages waiting for an update (UpdatesWatcher), and a button that upgrades them in a terminal.
 Item {
@@ -16,8 +17,8 @@ Item {
         Text {
             objectName: "updatesTitle"
             anchors.verticalCenter: parent.verticalCenter
-            text: tab.packages.length === 0 ? "Everything is up to date"
-                : tab.packages.length === 1 ? "1 update waiting" : tab.packages.length + " updates waiting"
+            text: tab.packages.length === 0 ? I18n.t("Everything is up to date")
+                : tab.packages.length === 1 ? I18n.t("1 update waiting") : I18n.t("{n} updates waiting", { n: tab.packages.length })
             color: palette.windowText
             font.pixelSize: 15
             font.weight: Font.DemiBold
@@ -30,8 +31,8 @@ Item {
             height: 32
             primary: true
             iconName: "system-software-update"
-            text: "Update now"
-            toolTip: "Opens a terminal to run the upgrade"
+            text: I18n.t("Update now")
+            toolTip: I18n.t("Opens a terminal to run the upgrade")
             onClicked: tab.upgradeRequested()
         }
     }

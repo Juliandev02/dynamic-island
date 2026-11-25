@@ -1,5 +1,6 @@
 import QtQuick
 import "logic.js" as L
+import "i18n.js" as I18n
 
 Item {
     id: tab
@@ -38,9 +39,9 @@ Item {
 
         Text {
             anchors.horizontalCenter: parent.horizontalCenter
-            text: !tab.active ? "Drag the tape or scroll to set"
-                : tab.timer.paused ? "Paused"
-                : "Ends at " + Qt.formatTime(new Date(tab.timer.endMs), "HH:mm")
+            text: !tab.active ? I18n.t("Drag the tape or scroll to set")
+                : tab.timer.paused ? I18n.t("Paused")
+                : I18n.t("Ends at {time}", { time: Qt.formatTime(new Date(tab.timer.endMs), "HH:mm") })
             color: palette.placeholderText
             font.pixelSize: 12
         }
@@ -78,15 +79,15 @@ Item {
             Item { width: 4; height: 1 }
             Pill {
                 objectName: "timerStart"
-                text: "Start"
+                text: I18n.t("Start")
                 primary: true
                 onClicked: tab.timer.start(tab.setMinutes)
             }
             Pill {
                 objectName: "pomodoroStart"
                 height: 30
-                text: "Pomodoro"
-                toolTip: "25 minutes of focus, then a 5 minute break; every fourth break is 15 minutes"
+                text: I18n.t("Pomodoro")
+                toolTip: I18n.t("25 minutes of focus, then a 5 minute break; every fourth break is 15 minutes")
                 onClicked: tab.timer.startPomodoro()
             }
         }
@@ -96,7 +97,10 @@ Item {
             visible: tab.active && tab.timer.pomodoro === true
             anchors.horizontalCenter: parent.horizontalCenter
             bottomPadding: 10
-            text: !tab.timer.pomodoro ? "" : (tab.timer.phase === "work" ? "Focus" : tab.timer.phase === "longBreak" ? "Long break" : "Break") + " · round " + tab.timer.round
+            text: !tab.timer.pomodoro ? "" : I18n.t("{phase} · round {n}", {
+                phase: tab.timer.phase === "work" ? I18n.t("Focus") : tab.timer.phase === "longBreak" ? I18n.t("Long break") : I18n.t("Break"),
+                n: tab.timer.round
+            })
             color: tab.timer.phase === "work" ? "#ff6b5a" : "#30d158"
             font.pixelSize: 13
             font.weight: Font.DemiBold
@@ -109,14 +113,14 @@ Item {
             Pill {
                 objectName: "timerReset"
                 iconName: "edit-undo"
-                toolTip: "Reset"
+                toolTip: I18n.t("Reset")
                 onClicked: tab.timer.reset()
             }
             Pill {
                 objectName: "timerToggle"
                 primary: true
                 iconName: tab.timer.running ? "media-playback-pause" : "media-playback-start"
-                text: tab.timer.running ? "Pause" : "Resume"
+                text: tab.timer.running ? I18n.t("Pause") : I18n.t("Resume")
                 onClicked: tab.timer.running ? tab.timer.pause() : tab.timer.resume()
             }
             Pill {
@@ -132,8 +136,8 @@ Item {
             Pill {
                 objectName: "pomodoroSkip"
                 visible: tab.timer.pomodoro === true
-                text: "Skip"
-                toolTip: "End this phase and start the next"
+                text: I18n.t("Skip")
+                toolTip: I18n.t("End this phase and start the next")
                 onClicked: tab.timer.skipPhase()
             }
         }

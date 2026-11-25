@@ -1,5 +1,6 @@
 import QtQuick
 import "logic.js" as L
+import "i18n.js" as I18n
 
 Column {
     id: card
@@ -35,7 +36,7 @@ Column {
             spacing: 2
             Text {
                 width: parent.width
-                text: card.player ? card.player.track : "Nothing playing"
+                text: card.player ? card.player.track : I18n.t("Nothing playing")
                 color: card.player ? palette.windowText : palette.placeholderText
                 font.pixelSize: 14
                 font.weight: card.player ? Font.DemiBold : Font.Normal

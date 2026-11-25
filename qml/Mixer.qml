@@ -1,6 +1,7 @@
 import QtQuick
 import org.kde.kirigami as Kirigami
 import "logic.js" as L
+import "i18n.js" as I18n
 
 // Devices and per-app volume. Works on PulseAudio objects from SoundSource (or look-alikes in tests).
 Item {
@@ -35,7 +36,7 @@ Item {
         width: 330
         spacing: 10
 
-        Heading { text: "OUTPUT" }
+        Heading { text: I18n.t("OUTPUT") }
         Flow {
             width: parent.width
             spacing: 6
@@ -61,7 +62,7 @@ Item {
         }
 
         Item { width: 1; height: 8 }
-        Heading { text: "INPUT" }
+        Heading { text: I18n.t("INPUT") }
         Flow {
             width: parent.width
             spacing: 6
@@ -111,12 +112,12 @@ Item {
         Item {
             width: parent.width
             height: appsHeading.height
-            Heading { id: appsHeading; text: "APPS" }
+            Heading { id: appsHeading; text: I18n.t("APPS") }
             Text {
                 objectName: "resetApps"
                 visible: mixer.apps.length > 0
                 anchors.right: parent.right
-                text: "Reset all to 100%"
+                text: I18n.t("Reset all to 100%")
                 color: resetArea.containsMouse ? Qt.lighter(palette.accent, 1.15) : palette.accent
                 font.pixelSize: 12
                 MouseArea {
@@ -132,7 +133,7 @@ Item {
             objectName: "noApps"
             visible: mixer.apps.length === 0
             topPadding: 6
-            text: "No apps are playing sound"
+            text: I18n.t("No apps are playing sound")
             color: palette.placeholderText
             font.pixelSize: 12
         }
@@ -168,7 +169,7 @@ Item {
                     }
                     Text {
                         width: parent.width
-                        text: row.modelData.muted ? "Muted" : row.modelData.corked ? "Paused" : row.modelData.name
+                        text: row.modelData.muted ? I18n.t("Muted") : row.modelData.corked ? I18n.t("Paused") : row.modelData.name
                         color: palette.placeholderText
                         font.pixelSize: 11
                         elide: Text.ElideRight

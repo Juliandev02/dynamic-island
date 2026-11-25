@@ -1,6 +1,7 @@
 import QtQuick
 import org.kde.kirigami as Kirigami
 import "weather.js" as W
+import "i18n.js" as I18n
 
 Column {
     id: card
@@ -40,7 +41,7 @@ Column {
                     isMask: true
                 }
                 Text {
-                    text: card.info.text
+                    text: I18n.t(card.info.text)
                     color: palette.windowText
                     font.pixelSize: 14
                     font.weight: Font.DemiBold
@@ -49,7 +50,7 @@ Column {
             Text {
                 width: parent.width
                 elide: Text.ElideRight
-                text: card.hasData ? (card.weather.city ? card.weather.city + " · " : "") + "H " + card.weather.high + "° L " + card.weather.low + "°" : ""
+                text: card.hasData ? (card.weather.city ? card.weather.city + " · " : "") + I18n.t("H {high}° L {low}°", { high: card.weather.high, low: card.weather.low }) : ""
                 color: palette.placeholderText
                 font.pixelSize: 12
             }
@@ -85,7 +86,7 @@ Column {
 
     Text {
         visible: !card.hasData
-        text: "Weather unavailable"
+        text: I18n.t("Weather unavailable")
         color: palette.placeholderText
         font.pixelSize: 12
     }

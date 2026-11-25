@@ -1,5 +1,6 @@
 import QtQuick
 import "logic.js" as L
+import "i18n.js" as I18n
 import QtQuick.Controls as QQC
 
 // Lyrics from LyricsSource: synced ones follow the song and seek on click; plain ones scroll.
@@ -88,10 +89,10 @@ Item {
         objectName: "lyricsStatus"
         visible: !view.synced && view.state !== "plain"
         anchors.verticalCenter: parent.verticalCenter
-        text: view.state === "loading" ? "Looking for lyrics…"
-            : view.state === "instrumental" ? "Instrumental"
-            : view.state === "off" ? "Lyrics are off in Settings"
-            : "No lyrics found for this song"
+        text: view.state === "loading" ? I18n.t("Looking for lyrics…")
+            : view.state === "instrumental" ? I18n.t("Instrumental")
+            : view.state === "off" ? I18n.t("Lyrics are off in Settings")
+            : I18n.t("No lyrics found for this song")
         color: palette.placeholderText
         font.pixelSize: 13
     }

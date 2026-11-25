@@ -1,5 +1,6 @@
 import QtQuick
 import "logic.js" as L
+import "i18n.js" as I18n
 
 Column {
     id: cal
@@ -26,8 +27,9 @@ Column {
         dayPicked(selected ? new Date(selected.y, selected.m, selected.d) : null)
     }
 
-    readonly property var monthNames: ["January", "February", "March", "April", "May", "June", "July",
-                                       "August", "September", "October", "November", "December"]
+    readonly property var monthNames: I18n.isGerman()
+        ? ["Januar", "Februar", "März", "April", "Mai", "Juni", "Juli", "August", "September", "Oktober", "November", "Dezember"]
+        : ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"]
 
     function key(y, m, d) { return y + "-" + m + "-" + d }
 
@@ -103,7 +105,7 @@ Column {
         readonly property real cellW: cal.width / 7
 
         Repeater {
-            model: ["S", "M", "T", "W", "T", "F", "S"]
+            model: I18n.isGerman() ? ["S", "M", "D", "M", "D", "F", "S"] : ["S", "M", "T", "W", "T", "F", "S"]
             delegate: Text {
                 required property string modelData
                 width: parent.cellW

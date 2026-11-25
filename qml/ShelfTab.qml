@@ -1,5 +1,6 @@
 import QtQuick
 import org.kde.kirigami as Kirigami
+import "i18n.js" as I18n
 
 // Files dropped on the island; drag one out to drop it into any app.
 Item {
@@ -28,7 +29,7 @@ Item {
         width: parent.width
         height: 16
         Text {
-            text: "SHELF"
+            text: I18n.t("SHELF")
             color: palette.placeholderText
             font.pixelSize: 12
             font.weight: Font.DemiBold
@@ -38,7 +39,7 @@ Item {
             objectName: "shelfClear"
             visible: tab.files.length > 0
             anchors.right: parent.right
-            text: "Clear"
+            text: I18n.t("Clear")
             color: clearArea.containsMouse ? Qt.lighter(palette.accent, 1.15) : palette.accent
             font.pixelSize: 12
             font.weight: Font.Medium
@@ -67,7 +68,7 @@ Item {
             objectName: "shelfEmpty"
             visible: tab.files.length === 0
             anchors.centerIn: parent
-            text: "Drag files here to keep them for later"
+            text: I18n.t("Drag files here to keep them for later")
             color: palette.placeholderText
             font.pixelSize: 13
         }

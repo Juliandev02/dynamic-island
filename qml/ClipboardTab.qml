@@ -2,6 +2,7 @@ import QtQuick
 import QtQuick.Controls as QQC
 import org.kde.kirigami as Kirigami
 import "logic.js" as L
+import "i18n.js" as I18n
 
 // Copy history from ClipboardHistory (or plain objects in tests). Changes go out as signals.
 Item {
@@ -67,7 +68,7 @@ Item {
                 Keys.onEscapePressed: { tab.query = ""; focus = false }
                 Text {
                     visible: !search.text
-                    text: "Search what you copied"
+                    text: I18n.t("Search what you copied")
                     color: palette.placeholderText
                     font: search.font
                 }
@@ -77,7 +78,7 @@ Item {
         Row {
             spacing: 6
             Repeater {
-                model: [["all", "All"], ["text", "Text"], ["link", "Links"], ["image", "Images"]]
+                model: [["all", I18n.t("All")], ["text", I18n.t("Text")], ["link", I18n.t("Links")], ["image", I18n.t("Images")]]
                 delegate: Pill {
                     required property var modelData
                     objectName: "clipKind-" + modelData[0]
@@ -112,7 +113,7 @@ Item {
                     x: 8
                     anchors.bottom: parent.bottom
                     anchors.bottomMargin: 6
-                    text: row.modelData.header || ""
+                    text: row.modelData.header ? I18n.t(row.modelData.header) : ""
                     color: palette.mid
                     font.pixelSize: 12
                 }
@@ -160,7 +161,7 @@ Item {
                             width: parent.width - 34 - (rowEnd.width + 10)
                             anchors.verticalCenter: parent.verticalCenter
                             text: row.modelData.kind === "image"
-                                ? "Image · " + row.modelData.width + " × " + row.modelData.height
+                                ? I18n.t("Image · {w} × {h}", { w: row.modelData.width, h: row.modelData.height })
                                 : (row.modelData.text || "").replace(/\s+/g, " ")
                             color: palette.windowText
                             font.pixelSize: 13
@@ -208,7 +209,7 @@ Item {
         visible: tab.rows.length === 0
         anchors.horizontalCenter: left.horizontalCenter
         y: 130
-        text: tab.items.length ? "Nothing matches" : "Nothing copied yet"
+        text: tab.items.length ? I18n.t("Nothing matches") : I18n.t("Nothing copied yet")
         color: palette.placeholderText
         font.pixelSize: 13
     }
@@ -221,7 +222,7 @@ Item {
         spacing: 10
 
         Text {
-            text: "PREVIEW"
+            text: I18n.t("PREVIEW")
             color: palette.placeholderText
             font.pixelSize: 12
             font.weight: Font.DemiBold
@@ -279,7 +280,7 @@ Item {
                     enabled: tab.selected !== null
                     opacity: enabled ? 1 : 0.4
                     iconName: "edit-copy-symbolic"
-                    text: "Copy"
+                    text: I18n.t("Copy")
                     onClicked: {
                         tab.copyRequested(tab.selectedId)
                         toast.opacity = 1
@@ -292,7 +293,7 @@ Item {
                     enabled: tab.selected !== null
                     opacity: enabled ? 1 : 0.4
                     iconName: "pin-symbolic"
-                    text: tab.selected && tab.selected.pinned ? "Unpin" : "Pin"
+                    text: tab.selected && tab.selected.pinned ? I18n.t("Unpin") : I18n.t("Pin")
                     onClicked: tab.pinRequested(tab.selectedId, !tab.selected.pinned)
                 }
                 Pill {
@@ -301,7 +302,7 @@ Item {
                     enabled: tab.selected !== null
                     opacity: enabled ? 1 : 0.4
                     iconName: "edit-delete-symbolic"
-                    text: "Delete"
+                    text: I18n.t("Delete")
                     onClicked: tab.removeRequested(tab.selectedId)
                 }
             }
@@ -309,8 +310,8 @@ Item {
                 objectName: "clipClear"
                 anchors.right: parent.right
                 height: 32
-                text: "Clear history"
-                toolTip: "Pinned items stay"
+                text: I18n.t("Clear history")
+                toolTip: I18n.t("Pinned items stay")
                 onClicked: tab.clearRequested()
             }
         }
@@ -332,7 +333,7 @@ Item {
         Text {
             id: toastText
             anchors.centerIn: parent
-            text: "Copied"
+            text: I18n.t("Copied")
             color: palette.window
             font.pixelSize: 12
             font.weight: Font.DemiBold

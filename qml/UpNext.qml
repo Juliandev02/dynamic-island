@@ -1,5 +1,6 @@
 import QtQuick
 import "logic.js" as L
+import "i18n.js" as I18n
 
 Column {
     id: up
@@ -49,7 +50,7 @@ Column {
         Text {
             id: heading
             objectName: "upNextHeading"
-            text: up.day ? L.dayName(up.day, up.now()).toUpperCase() : "UP NEXT"
+            text: up.day ? L.dayName(up.day, up.now()).toUpperCase() : I18n.t("UP NEXT")
             color: palette.placeholderText
             font.pixelSize: 12
             font.weight: Font.DemiBold
@@ -59,7 +60,7 @@ Column {
             objectName: "upNextBack"
             visible: up.day !== null
             anchors.right: parent.right
-            text: "Upcoming"
+            text: I18n.t("Upcoming")
             color: backArea.containsMouse ? palette.windowText : palette.accent
             font.pixelSize: 12
             MouseArea {
@@ -81,7 +82,7 @@ Column {
             spacing: 10
             Text {
                 width: 48
-                text: modelData.holiday ? (modelData.publicHoliday ? "Holiday" : "Festival") : L.eventWhen(modelData)
+                text: modelData.holiday ? (modelData.publicHoliday ? I18n.t("Holiday") : I18n.t("Festival")) : L.eventWhen(modelData)
                 color: modelData.holiday ? "#ff9f0a" : palette.placeholderText
                 font.pixelSize: 12
                 font.features: { "tnum": 1 }
@@ -109,7 +110,7 @@ Column {
                 visible: up.showJoin && !!modelData.link
                 height: 26
                 primary: true
-                text: "Join"
+                text: I18n.t("Join")
                 onClicked: up.linkRequested(modelData.link)
             }
         }
@@ -118,7 +119,7 @@ Column {
     Text {
         objectName: "upNextMore"
         visible: up.day !== null && up.events.length > up.dayLimit
-        text: "+" + (up.events.length - up.dayLimit) + " more"
+        text: I18n.t("+{n} more", { n: up.events.length - up.dayLimit })
         color: palette.placeholderText
         font.pixelSize: 12
     }
@@ -130,12 +131,12 @@ Column {
         wrapMode: Text.WordWrap
         color: palette.placeholderText
         font.pixelSize: 12
-        text: !up.calendar || !up.calendar.configured ? "Add your Google Calendar link to see events here"
-            : !up.calendar.loaded ? "Loading events…"
+        text: !up.calendar || !up.calendar.configured ? I18n.t("Add your Google Calendar link to see events here")
+            : !up.calendar.loaded ? I18n.t("Loading events…")
             : !up.calendar.ok && up.calendar.lastSuccess.getTime() > 0
-              ? "Couldn't reach Google Calendar · last updated " + Qt.formatTime(up.calendar.lastSuccess, "HH:mm")
-            : !up.calendar.ok ? "Couldn't reach Google Calendar"
-            : up.day ? "Nothing on this day"
-            : "Nothing else today or tomorrow"
+              ? I18n.t("Couldn't reach Google Calendar · last updated {time}", { time: Qt.formatTime(up.calendar.lastSuccess, "HH:mm") })
+            : !up.calendar.ok ? I18n.t("Couldn't reach Google Calendar")
+            : up.day ? I18n.t("Nothing on this day")
+            : I18n.t("Nothing else today or tomorrow")
     }
 }

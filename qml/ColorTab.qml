@@ -1,6 +1,7 @@
 import QtQuick
 import org.kde.kirigami as Kirigami
 import "logic.js" as L
+import "i18n.js" as I18n
 
 // Pick a colour anywhere on screen; its codes copy with a click.
 Item {
@@ -45,7 +46,7 @@ Item {
                 width: parent.width - 40
                 horizontalAlignment: Text.AlignHCenter
                 wrapMode: Text.Wrap
-                text: "Pick any colour on your screen"
+                text: I18n.t("Pick any colour on your screen")
                 color: palette.placeholderText
                 font.pixelSize: 13
             }
@@ -55,7 +56,7 @@ Item {
             width: 200
             primary: true
             iconName: "color-picker-symbolic"
-            text: "Pick a colour"
+            text: I18n.t("Pick a colour")
             onClicked: tab.pickRequested()
         }
     }
@@ -107,7 +108,7 @@ Item {
                     Text {
                         visible: tab.copiedKey === modelData.key
                         anchors.verticalCenter: parent.verticalCenter
-                        text: "Copied"
+                        text: I18n.t("Copied")
                         color: palette.accent
                         font.pixelSize: 12
                     }
@@ -135,7 +136,7 @@ Item {
 
         Text {
             visible: tab.colors.length > 0
-            text: "RECENT"
+            text: I18n.t("RECENT")
             color: palette.placeholderText
             font.pixelSize: 12
             font.weight: Font.DemiBold

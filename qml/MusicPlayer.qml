@@ -3,6 +3,7 @@ import QtQuick.Effects
 import QtQuick.Shapes
 import org.kde.kirigami as Kirigami
 import "logic.js" as L
+import "i18n.js" as I18n
 
 Item {
     id: music
@@ -34,7 +35,7 @@ Item {
     Text {
         visible: music.player === null
         anchors.centerIn: parent
-        text: "Nothing playing"
+        text: I18n.t("Nothing playing")
         color: palette.placeholderText
         font.pixelSize: 13
     }
@@ -247,7 +248,7 @@ Item {
                                 isMask: true
                             }
                             Text {
-                                text: "Open " + (music.player ? music.player.identity : "")
+                                text: I18n.t("Open {app}", { app: music.player ? music.player.identity : "" })
                                 color: palette.windowText
                                 font.pixelSize: 12
                             }

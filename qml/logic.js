@@ -1,4 +1,5 @@
 .pragma library
+.import "i18n.js" as I18n
 
 // Same values as PlaybackStatus.Status in org.kde.plasma.private.mpris.
 var Status = { Unknown: 0, Stopped: 1, Playing: 2, Paused: 3 }
@@ -201,7 +202,7 @@ function monthGrid(year, month0) {
 // The left column of Up next: start time, or "All day".
 function eventWhen(ev) {
     if (ev.allDay)
-        return "All day"
+        return I18n.t("All day")
     const start = new Date(ev.start)
     return String(start.getHours()).padStart(2, "0") + ":" + String(start.getMinutes()).padStart(2, "0")
 }
@@ -212,13 +213,13 @@ function batteryTooltip(percent, state, minutes) {
     const time = minutes >= 0 ? (minutes >= 60 ? Math.floor(minutes / 60) + " h" + (minutes % 60 ? " " + (minutes % 60) + " min" : "") : minutes + " min") : ""
     const parts = [percent + "%"]
     if (state === "Full" || (state !== "Discharging" && percent >= 100))
-        parts.push("Fully charged")
+        parts.push(I18n.t("Fully charged"))
     else if (state === "Charging")
-        parts.push(time ? "Charging · " + time + " until full" : "Charging")
+        parts.push(time ? I18n.t("Charging") + " · " + I18n.t("{time} until full", { time: time }) : I18n.t("Charging"))
     else if (state === "Not charging")
-        parts.push("Plugged in, not charging")
+        parts.push(I18n.t("Plugged in, not charging"))
     else if (state === "Discharging")
-        parts.push(time ? time + " left" : "On battery")
+        parts.push(time ? I18n.t("{time} left", { time: time }) : I18n.t("On battery"))
     return parts.join(" · ")
 }
 
@@ -276,18 +277,22 @@ function mergeEvents(a, b) {
 }
 
 var WEEKDAYS = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"]
+var WEEKDAYS_DE = ["So", "Mo", "Di", "Mi", "Do", "Fr", "Sa"]
+var MONTHS_DE = ["Jan", "Feb", "Mär", "Apr", "Mai", "Jun", "Jul", "Aug", "Sep", "Okt", "Nov", "Dez"]
 
 // "Today", "Tomorrow", "Yesterday", or "Thu 12 Nov" for any other day.
 function dayName(date, now) {
     const d = new Date(date)
     const days = Math.round((new Date(d.getFullYear(), d.getMonth(), d.getDate()) - new Date(now.getFullYear(), now.getMonth(), now.getDate())) / 86400000)
     if (days === 0)
-        return "Today"
+        return I18n.t("Today")
     if (days === 1)
-        return "Tomorrow"
+        return I18n.t("Tomorrow")
     if (days === -1)
-        return "Yesterday"
-    return WEEKDAYS[d.getDay()] + " " + d.getDate() + " " + MONTHS[d.getMonth()]
+        return I18n.t("Yesterday")
+    const wd = I18n.isGerman() ? WEEKDAYS_DE : WEEKDAYS
+    const mo = I18n.isGerman() ? MONTHS_DE : MONTHS
+    return wd[d.getDay()] + " " + d.getDate() + " " + mo[d.getMonth()]
 }
 
 // "Today · 45 min"; without the day (a picked day's list has it in its heading) just "45 min".
@@ -295,7 +300,7 @@ function eventDetail(ev, now, withoutDay) {
     const start = new Date(ev.start)
     const day = dayName(start, now)
     if (ev.allDay)
-        return withoutDay ? "All day" : day
+        return withoutDay ? I18n.t("All day") : day
     const mins = Math.round((new Date(ev.end) - start) / 60000)
     const h = Math.floor(mins / 60)
     const m = mins % 60
@@ -380,10 +385,10 @@ function idleGlance(o) {
         const start = new Date(ev.start)
         const mins = Math.ceil((start - o.now) / 60000)
         if (new Date(ev.end) > o.now && mins <= 30)
-            return { kind: "event", title: ev.title, detail: mins <= 0 ? "now" : "in " + mins + " min", link: ev.link || "" }
+            return { kind: "event", title: ev.title, detail: mins <= 0 ? I18n.t("now") : I18n.t("in {n} min", { n: mins }), link: ev.link || "" }
     }
     if (o.show.battery && o.battery >= 0 && o.battery <= 15 && !o.charging)
-        return { kind: "batteryLow", title: o.battery + "%", detail: "plug in" }
+        return { kind: "batteryLow", title: o.battery + "%", detail: I18n.t("plug in") }
     const low = lowDevice(o.devices)
     if (o.show.battery && low)
         return { kind: "deviceLow", title: low.name, detail: low.battery + "%", icon: low.icon || "bluetooth" }
@@ -413,39 +418,40 @@ function dayStart(ms) {
 
 function shortDate(ms) {
     const d = new Date(ms)
-    return d.getDate() + " " + MONTHS[d.getMonth()]
+    const mo = I18n.isGerman() ? MONTHS_DE : MONTHS
+    return d.getDate() + " " + mo[d.getMonth()]
 }
 
 // Clipboard row times: "now", "9 min", "2 h", then "Yesterday" or "20 Oct".
 function ago(ms, nowMs) {
     const mins = Math.floor((nowMs - ms) / 60000)
     if (mins < 1)
-        return "now"
+        return I18n.t("now")
     if (mins < 60)
         return mins + " min"
     if (ms >= dayStart(nowMs))
         return Math.floor(mins / 60) + " h"
     if (ms >= dayStart(nowMs) - 86400000)
-        return "Yesterday"
+        return I18n.t("Yesterday")
     return shortDate(ms)
 }
 
 function noteWhen(ms, nowMs) {
     if (ms >= dayStart(nowMs)) {
         const d = new Date(ms)
-        return "Today " + String(d.getHours()).padStart(2, "0") + ":" + String(d.getMinutes()).padStart(2, "0")
+        return I18n.t("Today") + " " + String(d.getHours()).padStart(2, "0") + ":" + String(d.getMinutes()).padStart(2, "0")
     }
-    return ms >= dayStart(nowMs) - 86400000 ? "Yesterday" : shortDate(ms)
+    return ms >= dayStart(nowMs) - 86400000 ? I18n.t("Yesterday") : shortDate(ms)
 }
 
 function clipMeta(item, nowMs) {
     const a = ago(item.time, nowMs)
-    const when = a === "now" ? "just now" : a.endsWith(" min") || a.endsWith(" h") ? a + " ago" : a
+    const when = a === I18n.t("now") ? I18n.t("just now") : a.endsWith(" min") || a.endsWith(" h") ? I18n.t("{t} ago", { t: a }) : a
     if (item.kind === "image")
-        return "Image · " + item.width + " × " + item.height + " · " + when
+        return I18n.t("Image · {w} × {h} · {when}", { w: item.width, h: item.height, when: when })
     if (item.kind === "link")
-        return "Link · " + when
-    return "Text · " + item.text.length + " characters · " + when
+        return I18n.t("Link · {when}", { when: when })
+    return I18n.t("Text · {n} characters · {when}", { n: item.text.length, when: when })
 }
 
 // The clipboard list: pinned first, then recent, each under a header; kind is "all", "text", "link" or "image".
@@ -474,8 +480,11 @@ var TOUR = [
 // What a Pomodoro phase change says: { title, body } for the notification.
 function pomodoroMessage(ended, next, minutes) {
     if (next === "work")
-        return { title: "Back to focus", body: minutes + " minutes of focus" }
-    return { title: ended === "work" ? "Time for a break" : "Break", body: (next === "longBreak" ? "A long break: " : "") + minutes + " minutes" }
+        return { title: I18n.t("Back to focus"), body: I18n.t("{n} minutes of focus", { n: minutes }) }
+    return {
+        title: ended === "work" ? I18n.t("Time for a break") : I18n.t("Break"),
+        body: next === "longBreak" ? I18n.t("A long break: {n} minutes", { n: minutes }) : I18n.t("{n} minutes", { n: minutes })
+    }
 }
 
 // A connected Bluetooth device at 15% or less (the emptiest), or null.

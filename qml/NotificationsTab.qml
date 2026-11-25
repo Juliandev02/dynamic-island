@@ -2,6 +2,7 @@ import QtQuick
 import QtQuick.Controls as QQC
 import org.kde.kirigami as Kirigami
 import "logic.js" as L
+import "i18n.js" as I18n
 
 // Saved notifications as NotificationHistory.groups gives them, one card per app. Changes go out as signals.
 Item {
@@ -27,14 +28,14 @@ Item {
             spacing: 10
             Text {
                 anchors.baseline: parent.children[1].baseline
-                text: "Notifications"
+                text: I18n.t("Notifications")
                 color: palette.windowText
                 font.pixelSize: 15
                 font.weight: Font.DemiBold
             }
             Text {
                 objectName: "notifHeader"
-                text: tab.newCount ? tab.newCount + " new" : "all seen"
+                text: tab.newCount ? I18n.t("{n} new", { n: tab.newCount }) : I18n.t("all seen")
                 color: palette.placeholderText
                 font.pixelSize: 12
             }
@@ -50,7 +51,7 @@ Item {
             Text {
                 id: clearText
                 anchors.centerIn: parent
-                text: "Clear all"
+                text: I18n.t("Clear all")
                 color: clearArea.containsMouse ? palette.windowText : palette.placeholderText
                 font.pixelSize: 12
             }
@@ -105,14 +106,14 @@ Item {
         Text {
             objectName: "notifEmptyTitle"
             anchors.horizontalCenter: parent.horizontalCenter
-            text: "No notifications"
+            text: I18n.t("No notifications")
             color: palette.windowText
             font.pixelSize: 14
             font.weight: Font.DemiBold
         }
         Text {
             anchors.horizontalCenter: parent.horizontalCenter
-            text: "New ones will be saved here."
+            text: I18n.t("New ones will be saved here.")
             color: palette.placeholderText
             font.pixelSize: 13
         }

@@ -1,6 +1,7 @@
 import QtQuick
 import org.kde.kirigami as Kirigami
 import "logic.js" as L
+import "i18n.js" as I18n
 
 // The right-click menu on the pill: L.pillMenu's rows, with the timer presets side by side.
 Slide {
@@ -62,7 +63,7 @@ Slide {
                     visible: !entry.modelData.minutes
                     objectName: "menu-" + entry.modelData.key
                     icon: entry.modelData.icon
-                    label: entry.modelData.label
+                    label: I18n.t(entry.modelData.label)
                     onPicked: island.pickMenu(entry.modelData.key)
                 }
                 // Timer presets sit side by side on one row.

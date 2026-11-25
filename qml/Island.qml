@@ -4,9 +4,19 @@ import QtQuick.Shapes
 import org.kde.kirigami as Kirigami
 import "logic.js" as L
 import "weather.js" as W
+import "i18n.js" as I18n
 
 Item {
     id: island
+
+    // Active UI language ("en" or "de"); changing it re-evaluates tr() bindings and refreshes the cached panel.
+    property string lang: I18n.lang
+    function tr(s, p) { lang; return I18n.t(s, p) }
+    onLangChanged: {
+        refreshGlance()
+        if (!open)
+            panelLoader.active = false
+    }
 
     property var player: null
     // The position to show, counted on between the player's own updates.
@@ -659,7 +669,7 @@ Item {
                 Text {
                     id: joinText
                     anchors.centerIn: parent
-                    text: "Join"
+                    text: island.tr("Join")
                     color: "#ffffff"
                     font.pixelSize: 12
                     font.weight: Font.DemiBold
@@ -1179,7 +1189,7 @@ Item {
             anchors.leftMargin: 12
             anchors.verticalCenter: parent.verticalCenter
             Text {
-                text: island.timerActive && island.timer.paused ? "Timer paused" : "Timer"
+                text: island.timerActive && island.timer.paused ? island.tr("Timer paused") : island.tr("Timer")
                 color: palette.placeholderText
                 font.pixelSize: 12
             }
@@ -1228,7 +1238,7 @@ Item {
             anchors.right: jobsPercent.left
             anchors.rightMargin: 8
             anchors.verticalCenter: parent.verticalCenter
-            text: island.jobs.count === 1 ? L.jobName(island.jobs.shown[0]) : island.jobs.count + " jobs"
+            text: island.jobs.count === 1 ? L.jobName(island.jobs.shown[0]) : island.tr("{n} jobs", { n: island.jobs.count })
             color: palette.windowText
             font.pixelSize: 12
             font.weight: Font.DemiBold
@@ -1338,7 +1348,7 @@ Item {
                 height: 30
                 verticalAlignment: Text.AlignVCenter
                 leftPadding: 28
-                text: "+" + (island.jobs.count - 3) + " more"
+                text: island.tr("+{n} more", { n: island.jobs.count - 3 })
                 color: palette.placeholderText
                 font.pixelSize: 12
             }

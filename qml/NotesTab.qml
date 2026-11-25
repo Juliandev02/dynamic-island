@@ -1,6 +1,7 @@
 import QtQuick
 import QtQuick.Controls as QQC
 import "logic.js" as L
+import "i18n.js" as I18n
 
 // Notes from NotesStore (or fakes in tests); saves a moment after typing stops.
 Item {
@@ -63,7 +64,7 @@ Item {
             width: parent.width
             height: 16
             Text {
-                text: "NOTES"
+                text: I18n.t("NOTES")
                 color: palette.placeholderText
                 font.pixelSize: 12
                 font.weight: Font.DemiBold
@@ -72,7 +73,7 @@ Item {
             Text {
                 objectName: "noteNew"
                 anchors.right: parent.right
-                text: "+ New"
+                text: I18n.t("+ New")
                 color: newArea.containsMouse ? Qt.lighter(palette.accent, 1.15) : palette.accent
                 font.pixelSize: 12
                 font.weight: Font.Medium
@@ -156,7 +157,7 @@ Item {
                 wrapMode: TextEdit.Wrap
                 color: palette.text
                 selectionColor: palette.accent
-                placeholderText: "Write something…"
+                placeholderText: I18n.t("Write something…")
                 placeholderTextColor: palette.mid
                 font.pixelSize: 14
                 background: null
@@ -169,7 +170,7 @@ Item {
             width: parent.width
             height: 16
             Text {
-                text: "First line is the title"
+                text: I18n.t("First line is the title")
                 color: palette.placeholderText
                 font.pixelSize: 12
             }
@@ -178,7 +179,7 @@ Item {
                 visible: editor.text.trim() !== ""
                 anchors.right: noteStatusText.left
                 anchors.rightMargin: 14
-                text: "Delete"
+                text: I18n.t("Delete")
                 color: deleteArea.containsMouse ? "#ff8a8a" : palette.placeholderText
                 font.pixelSize: 12
                 MouseArea {
@@ -194,7 +195,7 @@ Item {
                 id: noteStatusText
                 objectName: "noteStatus"
                 anchors.right: parent.right
-                text: saveTimer.running ? "Saving…" : "Saved"
+                text: saveTimer.running ? I18n.t("Saving…") : I18n.t("Saved")
                 color: palette.placeholderText
                 font.pixelSize: 12
             }

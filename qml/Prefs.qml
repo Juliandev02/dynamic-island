@@ -10,7 +10,7 @@ QtObject {
     readonly property var defaults: ({
         style: { look: "notch", accent: "#0a84ff", coverTint: true, liveBars: true, theme: "dark", translucent: false, color: "", opacity: -1 },
         shape: { height: 32, idleWidth: 180, compactWidth: 260, radius: 12, ears: 8 },
-        behaviour: { cycleSeconds: 6, swipeHoldSeconds: 15, pausedMinutes: 5, openOnHover: false, coverLookup: true, lyrics: true, pillLyrics: true, lyricSourcesOff: [], animationSpeed: 100 },
+        behaviour: { cycleSeconds: 6, swipeHoldSeconds: 15, pausedMinutes: 5, openOnHover: false, coverLookup: true, lyrics: true, pillLyrics: true, lyricSourcesOff: [], animationSpeed: 100, language: "system" },
         weather: { city: "", latitude: 0, longitude: 0, fahrenheit: false },
         quickButtons: { hidden: [] },
         panel: { time: true, date: true },
@@ -65,6 +65,8 @@ QtObject {
         property var lyricSourcesOff: prefs.defaults.behaviour.lyricSourcesOff
         // Animation duration multiplier in percent (0 = off, 100 = default).
         property int animationSpeed: prefs.defaults.behaviour.animationSpeed
+        // UI language: "system" (follows Qt.locale()), "en" or "de".
+        property string language: prefs.defaults.behaviour.language
         // The first-run tour has been seen or skipped.
         property bool tourSeen: false
     }

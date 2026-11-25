@@ -1,5 +1,6 @@
 import QtQuick
 import "logic.js" as L
+import "i18n.js" as I18n
 
 Column {
     id: card
@@ -43,7 +44,7 @@ Column {
 
     Text {
         visible: card.active
-        text: card.timer.paused ? "Paused" : "Ends at " + Qt.formatTime(new Date(card.timer.endMs), "HH:mm")
+        text: card.timer.paused ? I18n.t("Paused") : I18n.t("Ends at {time}", { time: Qt.formatTime(new Date(card.timer.endMs), "HH:mm") })
         color: palette.placeholderText
         font.pixelSize: 12
     }
@@ -67,7 +68,7 @@ Column {
             visible: card.active
             height: 30
             iconName: card.timer.running ? "media-playback-pause" : "media-playback-start"
-            toolTip: card.timer.running ? "Pause" : "Resume"
+            toolTip: card.timer.running ? I18n.t("Pause") : I18n.t("Resume")
             onClicked: card.timer.running ? card.timer.pause() : card.timer.resume()
         }
         Pill {
@@ -80,7 +81,7 @@ Column {
             visible: card.active
             height: 30
             iconName: "edit-undo"
-            toolTip: "Reset"
+            toolTip: I18n.t("Reset")
             onClicked: card.timer.reset()
         }
     }

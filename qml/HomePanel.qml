@@ -1,6 +1,7 @@
 import QtQuick
 import QtQuick.Controls as QQC
 import org.kde.kirigami as Kirigami
+import "i18n.js" as I18n
 
 Item {
     id: panel
@@ -125,24 +126,24 @@ Item {
     // The tool picked from the ⋯ menu; it gets the tab slot after the divider.
     property string extraTool: "clipboard"
     readonly property var tools: [
-        { key: "clipboard", label: "Clipboard", icon: "edit-paste-symbolic" },
-        { key: "notes", label: "Notes", icon: "document-edit-symbolic" },
-        { key: "shelf", label: "Shelf", icon: "folder-download-symbolic" },
-        { key: "links", label: "Quick links", icon: "link-symbolic" },
-        { key: "color", label: "Colour picker", icon: "color-picker-symbolic" }
+        { key: "clipboard", label: I18n.t("Clipboard"), icon: "edit-paste-symbolic" },
+        { key: "notes", label: I18n.t("Notes"), icon: "document-edit-symbolic" },
+        { key: "shelf", label: I18n.t("Shelf"), icon: "folder-download-symbolic" },
+        { key: "links", label: I18n.t("Quick links"), icon: "link-symbolic" },
+        { key: "color", label: I18n.t("Colour picker"), icon: "color-picker-symbolic" }
     ]
     readonly property var extra: tools.find(t => t.key === extraTool) || tools[0]
     property bool menuOpen: false
     readonly property var tabList: [
-        { key: "home", label: "Home", icon: "go-home" },
-        { key: "music", label: "Music", icon: "media-playback-start" },
-        { key: "timer", label: "Timer", icon: "chronometer" },
-        { key: "mixer", label: "Sound Mixer", icon: "view-media-equalizer" },
-        ...(history && history.settings.save ? [{ key: "notifications", label: "Notifications", icon: "notifications" }] : []),
+        { key: "home", label: I18n.t("Home"), icon: "go-home" },
+        { key: "music", label: I18n.t("Music"), icon: "media-playback-start" },
+        { key: "timer", label: I18n.t("Timer"), icon: "chronometer" },
+        { key: "mixer", label: I18n.t("Sound Mixer"), icon: "view-media-equalizer" },
+        ...(history && history.settings.save ? [{ key: "notifications", label: I18n.t("Notifications"), icon: "notifications" }] : []),
         { divider: true },
-        { key: "todo", label: "To-Do", icon: "view-list-symbolic" },
+        { key: "todo", label: I18n.t("To-Do"), icon: "view-list-symbolic" },
         { key: extra.key, label: extra.label, icon: extra.icon, name: "extra" },
-        { key: "more", label: "More", icon: "overflow-menu" }
+        { key: "more", label: I18n.t("More"), icon: "overflow-menu" }
     ]
     // The tabs the keyboard steps through, in order (the ⋯ menu isn't one).
     readonly property var tabKeys: tabList.filter(t => !t.divider && t.key !== "more").map(t => t.key)
@@ -493,7 +494,7 @@ Item {
                 onRemoveRequested: id => {
                     const taken = panel.clipboard.take(id)
                     if (taken.item)
-                        panel.offerUndo("Clipboard item deleted", () => panel.clipboard.restore(taken), () => panel.clipboard.discard(taken))
+                        panel.offerUndo(I18n.t("Clipboard item deleted"), () => panel.clipboard.restore(taken), () => panel.clipboard.discard(taken))
                 }
                 onClearRequested: panel.clipboard.clear()
             }
@@ -539,7 +540,7 @@ Item {
                 newId: () => panel.notes.newId()
                 onDeleteRequested: (id, text) => {
                     panel.notes.write(id, "")
-                    panel.offerUndo("Note deleted", () => {
+                    panel.offerUndo(I18n.t("Note deleted"), () => {
                         panel.notes.write(id, text)
                         if (notesTab.item)
                             notesTab.item.open(id)
@@ -592,7 +593,7 @@ Item {
                 removeItem: id => {
                     const removed = panel.todos.remove(id)
                     if (removed.item)
-                        panel.offerUndo("Task deleted", () => panel.todos.restore(removed))
+                        panel.offerUndo(I18n.t("Task deleted"), () => panel.todos.restore(removed))
                 }
                 clearDone: () => panel.todos.clearDone()
             }
@@ -627,7 +628,7 @@ Item {
             Text {
                 objectName: "undoButton"
                 anchors.verticalCenter: parent.verticalCenter
-                text: "Undo"
+                text: I18n.t("Undo")
                 color: undoArea.containsMouse ? Qt.lighter(palette.accent, 1.2) : palette.accent
                 font.pixelSize: 12
                 font.weight: Font.DemiBold

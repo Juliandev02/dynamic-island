@@ -3,6 +3,7 @@ import QtQuick.Controls as QQC
 import org.kde.kirigami as Kirigami
 import Island
 import "logic.js" as L
+import "i18n.js" as I18n
 
 Row {
     id: quick
@@ -48,7 +49,10 @@ Row {
 
     QuickButton {
         objectName: "qb-volume"
-        label: "Sound mixer · " + (SystemStatus.muted ? "muted" : SystemStatus.volume + "%") + " (scroll to change, right-click to " + (SystemStatus.muted ? "unmute" : "mute") + ")"
+        label: I18n.t("Sound mixer · {level} (scroll to change, right-click to {action})", {
+            level: SystemStatus.muted ? I18n.t("muted") : SystemStatus.volume + "%",
+            action: SystemStatus.muted ? I18n.t("unmute") : I18n.t("mute")
+        })
         iconName: SystemStatus.muted ? "audio-volume-muted" : "audio-volume-high"
         onClicked: quick.tabRequested("mixer")
         onRightClicked: SystemStatus.toggleMute()
@@ -97,7 +101,7 @@ Row {
                 Text {
                     objectName: "volumeBubbleText"
                     anchors.verticalCenter: parent.verticalCenter
-                    text: SystemStatus.muted ? "Muted" : SystemStatus.volume + "%"
+                    text: SystemStatus.muted ? I18n.t("Muted") : SystemStatus.volume + "%"
                     color: palette.windowText
                     font.pixelSize: 11
                     font.weight: Font.DemiBold
@@ -108,14 +112,14 @@ Row {
     }
     QuickButton {
         objectName: "qb-wifi"
-        label: "Wi-Fi"
+        label: I18n.t("Wi-Fi")
         on: SystemStatus.wifi
         iconName: SystemStatus.wifi ? "network-wireless" : "network-wireless-disconnected"
         onClicked: SystemStatus.setWifi(!SystemStatus.wifi)
     }
     QuickButton {
         objectName: "qb-bluetooth"
-        label: quick.btSummary.label + " (right-click for connected devices)"
+        label: I18n.t("{label} (right-click for connected devices)", { label: quick.btSummary.label })
         badge: quick.btSummary.badge
         onRightClicked: btPopup.open()
         BluetoothDevices {
@@ -131,27 +135,27 @@ Row {
     }
     QuickButton {
         objectName: "qb-dnd"
-        label: "Do not disturb"
+        label: I18n.t("Do not disturb")
         on: SystemStatus.dnd
         iconName: "notifications-disabled"
         onClicked: SystemStatus.setDnd(!SystemStatus.dnd)
     }
     QuickButton {
         objectName: "qb-awake"
-        label: "Keep screen awake"
+        label: I18n.t("Keep screen awake")
         on: SystemStatus.keepAwake
         iconName: "system-suspend-inhibited"
         onClicked: SystemStatus.setKeepAwake(!SystemStatus.keepAwake)
     }
     QuickButton {
         objectName: "qb-screenshot"
-        label: "Screenshot"
+        label: I18n.t("Screenshot")
         iconName: "camera-photo-symbolic"
         onClicked: SystemStatus.screenshot()
     }
     QuickButton {
         objectName: "qb-lock"
-        label: "Lock screen"
+        label: I18n.t("Lock screen")
         iconName: "system-lock-screen-symbolic"
         onClicked: SystemStatus.lock()
     }

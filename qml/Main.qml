@@ -2,9 +2,13 @@ import QtQuick
 import org.kde.kirigami as Kirigami
 import Island
 import "logic.js" as L
+import "i18n.js" as I18n
 
 Window {
     id: root
+
+    // Set UI language before child bindings evaluate ("system" picks German on de_* locales).
+    readonly property string activeLang: I18n.setLang(prefs.behaviour.language, Qt.locale().name)
 
     width: Math.min(1100, Screen.width > 0 ? Screen.width : 900)
     height: 460
@@ -56,6 +60,7 @@ Window {
     SettingsWindow {
         id: settingsWindow
         prefs: prefs
+        lang: root.activeLang
         calendar: calendarSource
         appConfig: AppConfig
         blur: blurSettings
@@ -399,6 +404,7 @@ Window {
         swipeHold: prefs.behaviour.swipeHoldSeconds * 1000
         openOnHover: prefs.behaviour.openOnHover
         animationScale: prefs.behaviour.animationSpeed / 100 * PlasmaSettings.animationDurationFactor()
+        lang: root.activeLang
         quickHidden: L.toList(prefs.quickButtons.hidden)
         panelTime: prefs.panel.time
         panelDate: prefs.panel.date

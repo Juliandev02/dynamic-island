@@ -6,11 +6,15 @@ import QtCore
 import org.kde.kirigami as Kirigami
 import Island
 import "logic.js" as L
+import "i18n.js" as I18n
 
 QQC.ApplicationWindow {
     id: win
 
     required property var prefs
+    // Bound to Main.qml's activeLang in the app; defaults to "en" in unit tests.
+    property string lang: I18n.lang
+    function tr(s, p) { lang; return I18n.t(s, p) }
     property var calendar: null
     // The AppConfig singleton; passed in so the window also loads without the C++ module (tests).
     property var appConfig: null
@@ -18,7 +22,7 @@ QQC.ApplicationWindow {
     property var blur: null
     signal tourRequested()
 
-    title: "Dynamic Island settings"
+    title: win.tr("Dynamic Island settings")
     width: 760
     height: 600
     minimumWidth: 620
@@ -98,15 +102,15 @@ QQC.ApplicationWindow {
         })
     }
     readonly property var pages: [
-            { label: "Look", icon: "preferences-desktop-theme-global" },
-            { label: "Behaviour", icon: "preferences-system-windows-behavior" },
-            { label: "Alerts", icon: "preferences-desktop-notification" },
-            { label: "When idle", icon: "preferences-desktop-screensaver" },
-            { label: "Calendar", icon: "view-calendar" },
-            { label: "Weather", icon: "weather-few-clouds" },
-            { label: "Quick buttons", icon: "view-grid" },
-            { label: "Quick links", icon: "link" },
-            { label: "General", icon: "preferences-system" }
+            { label: win.tr("Look"), icon: "preferences-desktop-theme-global" },
+            { label: win.tr("Behaviour"), icon: "preferences-system-windows-behavior" },
+            { label: win.tr("Alerts"), icon: "preferences-desktop-notification" },
+            { label: win.tr("When idle"), icon: "preferences-desktop-screensaver" },
+            { label: win.tr("Calendar"), icon: "view-calendar" },
+            { label: win.tr("Weather"), icon: "weather-few-clouds" },
+            { label: win.tr("Quick buttons"), icon: "view-grid" },
+            { label: win.tr("Quick links"), icon: "link" },
+            { label: win.tr("General"), icon: "preferences-system" }
     ]
 
     RowLayout {
@@ -124,7 +128,7 @@ QQC.ApplicationWindow {
             objectName: "settingsSearch"
             Layout.fillWidth: true
             Layout.margins: Kirigami.Units.smallSpacing
-            placeholderText: "Search settings"
+            placeholderText: win.tr("Search settings")
             text: win.query
             onTextChanged: win.query = text
             Keys.onReturnPressed: if (win.results.length) win.reveal(win.results[0])
@@ -135,7 +139,7 @@ QQC.ApplicationWindow {
             visible: win.query.trim().length >= 2 && win.results.length === 0
             Layout.fillWidth: true
             Layout.margins: Kirigami.Units.largeSpacing
-            text: "Nothing matches."
+            text: win.tr("Nothing matches.")
             opacity: 0.7
             wrapMode: Text.WordWrap
         }
@@ -194,25 +198,25 @@ QQC.ApplicationWindow {
             Layout.fillHeight: true
             currentIndex: win.page
             Page {
-                title: "Look"
+                title: win.tr("Look")
                 Kirigami.FormLayout {
                     Layout.fillWidth: true
                     QQC.ButtonGroup { id: lookGroup }
                     QQC.RadioButton {
-                        Kirigami.FormData.label: "Style:"
-                        text: "Notch, joined to the top edge"
+                        Kirigami.FormData.label: win.tr("Style:")
+                        text: win.tr("Notch, joined to the top edge")
                         QQC.ButtonGroup.group: lookGroup
                         checked: win.prefs.style.look === "notch"
                         onToggled: win.prefs.style.look = "notch"
                     }
                     QQC.RadioButton {
-                        text: "Pill, floating below the edge"
+                        text: win.tr("Pill, floating below the edge")
                         QQC.ButtonGroup.group: lookGroup
                         checked: win.prefs.style.look === "pill"
                         onToggled: win.prefs.style.look = "pill"
                     }
                     RowLayout {
-                        Kirigami.FormData.label: "Accent colour:"
+                        Kirigami.FormData.label: win.tr("Accent colour:")
                         spacing: 8
                         Repeater {
                             model: ["#0a84ff", "#5e5ce6", "#bf5af2", "#ff375f", "#ff453a", "#ff9f0a", "#ffd60a", "#30d158", "#64d2ff", "#8e8e93"]
@@ -233,28 +237,28 @@ QQC.ApplicationWindow {
                             }
                         }
                         QQC.Button {
-                            text: "Custom…"
+                            text: win.tr("Custom…")
                             icon.name: "color-picker"
                             onClicked: accentDialog.open()
                         }
                     }
                     QQC.CheckBox {
                         objectName: "coverTint"
-                        text: "Tint music controls with the cover's colour"
+                        text: win.tr("Tint music controls with the cover's colour")
                         checked: win.prefs.style.coverTint
                         onToggled: win.prefs.style.coverTint = checked
                     }
                     QQC.ComboBox {
                         objectName: "themePicker"
-                        Kirigami.FormData.label: "Colours:"
+                        Kirigami.FormData.label: win.tr("Colours:")
                         textRole: "label"
                         valueRole: "key"
-                        model: [{ key: "dark", label: "Dark" }, { key: "light", label: "Light" }, { key: "system", label: "Follow Plasma" }]
+                        model: [{ key: "dark", label: win.tr("Dark") }, { key: "light", label: win.tr("Light") }, { key: "system", label: win.tr("Follow Plasma") }]
                         currentIndex: Math.max(0, model.findIndex(m => m.key === win.prefs.style.theme))
                         onActivated: win.prefs.style.theme = currentValue
                     }
                     RowLayout {
-                        Kirigami.FormData.label: "Island colour:"
+                        Kirigami.FormData.label: win.tr("Island colour:")
                         spacing: 8
                         Repeater {
                             model: ["", "#000000", "#1c1c1e", "#0b1f33", "#1e1033", "#0f2a1d", "#2a1512", "#f2f2f7", "#fff4dc"]
@@ -281,7 +285,7 @@ QQC.ApplicationWindow {
                                     color: "#f2f2f7"
                                 }
                                 QQC.ToolTip.visible: swatchArea.containsMouse
-                                QQC.ToolTip.text: modelData === "" ? "The theme's colour" : modelData
+                                QQC.ToolTip.text: modelData === "" ? win.tr("The theme's colour") : modelData
                                 MouseArea {
                                     id: swatchArea
                                     anchors.fill: parent
@@ -293,27 +297,27 @@ QQC.ApplicationWindow {
                         }
                         QQC.Button {
                             objectName: "islandColorCustom"
-                            text: "Custom…"
+                            text: win.tr("Custom…")
                             icon.name: "color-picker"
                             onClicked: islandColorDialog.open()
                         }
                     }
                     ColorDialog {
                         id: islandColorDialog
-                        title: "Choose the island's colour"
+                        title: win.tr("Choose the island's colour")
                         selectedColor: win.prefs.style.color || "#000000"
                         onAccepted: win.prefs.style.color = selectedColor.toString().slice(0, 7)
                     }
                     SliderRow {
                         objectName: "islandOpacity"
-                        Kirigami.FormData.label: "Opacity:"
+                        Kirigami.FormData.label: win.tr("Opacity:")
                         from: 20; to: 100; suffix: "%"
                         value: L.islandOpacity(win.prefs.style.opacity, win.prefs.style.translucent)
                         onMoved: v => win.prefs.style.opacity = v
                     }
                     QQC.CheckBox {
                         objectName: "translucent"
-                        text: "Blur what shows through"
+                        text: win.tr("Blur what shows through")
                         enabled: L.islandOpacity(win.prefs.style.opacity, win.prefs.style.translucent) < 100
                         checked: win.prefs.style.translucent
                         onToggled: {
@@ -325,7 +329,7 @@ QQC.ApplicationWindow {
                     }
                     SliderRow {
                         objectName: "blurStrength"
-                        Kirigami.FormData.label: "Blur strength:"
+                        Kirigami.FormData.label: win.tr("Blur strength:")
                         visible: win.blur !== null
                         enabled: win.blur !== null && win.blur.effect !== "" && win.prefs.style.translucent
                         from: 1; to: 15; suffix: ""
@@ -338,49 +342,50 @@ QQC.ApplicationWindow {
                         wrapMode: Text.WordWrap
                         opacity: 0.7
                         font: Kirigami.Theme.smallFont
-                        text: win.blur && win.blur.effect === "" ? "No blur effect is running in KWin."
-                            : "KWin has one blur strength for every window, so this changes the blur everywhere"
-                              + (win.blur && win.blur.effect === "better_blur_dx" ? " (Better Blur DX's setting)." : ".")
+                        text: win.blur && win.blur.effect === "" ? win.tr("No blur effect is running in KWin.")
+                            : win.blur && win.blur.effect === "better_blur_dx"
+                              ? win.tr("KWin has one blur strength for every window, so this changes the blur everywhere (Better Blur DX's setting).")
+                              : win.tr("KWin has one blur strength for every window, so this changes the blur everywhere.")
                     }
                     QQC.CheckBox {
                         objectName: "liveBars"
-                        text: "Level bars follow the sound"
+                        text: win.tr("Level bars follow the sound")
                         checked: win.prefs.style.liveBars
                         onToggled: win.prefs.style.liveBars = checked
                     }
                     ColorDialog {
                         id: accentDialog
-                        title: "Choose an accent colour"
+                        title: win.tr("Choose an accent colour")
                         selectedColor: win.prefs.style.accent
                         onAccepted: win.prefs.style.accent = selectedColor.toString()
                     }
                     Item { Kirigami.FormData.isSection: true }
                     SliderRow {
-                        Kirigami.FormData.label: "Height:"
+                        Kirigami.FormData.label: win.tr("Height:")
                         from: 24; to: 48; suffix: " px"
                         value: win.prefs.shape.height
                         onMoved: v => win.prefs.shape.height = v
                     }
                     SliderRow {
-                        Kirigami.FormData.label: "Width when empty:"
+                        Kirigami.FormData.label: win.tr("Width when empty:")
                         from: 100; to: 320; suffix: " px"
                         value: win.prefs.shape.idleWidth
                         onMoved: v => win.prefs.shape.idleWidth = v
                     }
                     SliderRow {
-                        Kirigami.FormData.label: "Width with music or timer:"
+                        Kirigami.FormData.label: win.tr("Width with music or timer:")
                         from: 160; to: 420; suffix: " px"
                         value: win.prefs.shape.compactWidth
                         onMoved: v => win.prefs.shape.compactWidth = v
                     }
                     SliderRow {
-                        Kirigami.FormData.label: "Corner roundness:"
+                        Kirigami.FormData.label: win.tr("Corner roundness:")
                         from: 0; to: 20; suffix: " px"
                         value: win.prefs.shape.radius
                         onMoved: v => win.prefs.shape.radius = v
                     }
                     SliderRow {
-                        Kirigami.FormData.label: "Curves at the top:"
+                        Kirigami.FormData.label: win.tr("Curves at the top:")
                         enabled: win.prefs.style.look === "notch"
                         from: 0; to: 16; suffix: " px"
                         value: win.prefs.shape.ears
@@ -388,63 +393,63 @@ QQC.ApplicationWindow {
                     }
                     Item { Kirigami.FormData.isSection: true }
                     QQC.CheckBox {
-                        Kirigami.FormData.label: "Top of the open panel:"
-                        text: "Time"
+                        Kirigami.FormData.label: win.tr("Top of the open panel:")
+                        text: win.tr("Time")
                         checked: win.prefs.panel.time
                         onToggled: win.prefs.panel.time = checked
                     }
                     QQC.CheckBox {
-                        text: "Date"
+                        text: win.tr("Date")
                         checked: win.prefs.panel.date
                         onToggled: win.prefs.panel.date = checked
                     }
                 }
             }
             Page {
-                title: "Behaviour"
+                title: win.tr("Behaviour")
                 Kirigami.FormLayout {
                     Layout.fillWidth: true
                     SliderRow {
-                        Kirigami.FormData.label: "Switch music and timer every:"
+                        Kirigami.FormData.label: win.tr("Switch music and timer every:")
                         from: 3; to: 30; suffix: " s"
                         value: win.prefs.behaviour.cycleSeconds
                         onMoved: v => win.prefs.behaviour.cycleSeconds = v
                     }
                     SliderRow {
-                        Kirigami.FormData.label: "After a swipe, hold for:"
+                        Kirigami.FormData.label: win.tr("After a swipe, hold for:")
                         from: 5; to: 60; suffix: " s"
                         value: win.prefs.behaviour.swipeHoldSeconds
                         onMoved: v => win.prefs.behaviour.swipeHoldSeconds = v
                     }
                     SliderRow {
-                        Kirigami.FormData.label: "Keep paused music for:"
+                        Kirigami.FormData.label: win.tr("Keep paused music for:")
                         from: 1; to: 60; suffix: " min"
                         value: win.prefs.behaviour.pausedMinutes
                         onMoved: v => win.prefs.behaviour.pausedMinutes = v
                     }
                     SliderRow {
                         objectName: "animationSpeed"
-                        Kirigami.FormData.label: "Animation duration:"
+                        Kirigami.FormData.label: win.tr("Animation duration:")
                         from: 0; to: 150; suffix: "%"
                         value: win.prefs.behaviour.animationSpeed
                         onMoved: v => win.prefs.behaviour.animationSpeed = v
                     }
                     QQC.CheckBox {
-                        Kirigami.FormData.label: "Missing song covers:"
-                        text: "Look up on iTunes (sends the artist and title to Apple)"
+                        Kirigami.FormData.label: win.tr("Missing song covers:")
+                        text: win.tr("Look up on iTunes (sends the artist and title to Apple)")
                         checked: win.prefs.behaviour.coverLookup
                         onToggled: win.prefs.behaviour.coverLookup = checked
                     }
                     QQC.CheckBox {
                         objectName: "lyricsSwitch"
-                        Kirigami.FormData.label: "Lyrics:"
-                        text: "Show lyrics in the Music tab (sends the song to the sources below when shown)"
+                        Kirigami.FormData.label: win.tr("Lyrics:")
+                        text: win.tr("Show lyrics in the Music tab (sends the song to the sources below when shown)")
                         checked: win.prefs.behaviour.lyrics
                         onToggled: win.prefs.behaviour.lyrics = checked
                     }
                     QQC.CheckBox {
                         objectName: "pillLyricsSwitch"
-                        text: "Show the line being sung in place of the title on the pill"
+                        text: win.tr("Show the line being sung in place of the title on the pill")
                         enabled: win.prefs.behaviour.lyrics
                         checked: win.prefs.behaviour.pillLyrics
                         onToggled: win.prefs.behaviour.pillLyrics = checked
@@ -455,8 +460,8 @@ QQC.ApplicationWindow {
                             required property var modelData
                             required property int index
                             objectName: "lyricSource_" + modelData.key
-                            Kirigami.FormData.label: index === 0 ? "Lyrics sources:" : ""
-                            text: modelData.label + " (" + modelData.note + ")"
+                            Kirigami.FormData.label: index === 0 ? win.tr("Lyrics sources:") : ""
+                            text: modelData.label + " (" + win.tr(modelData.note) + ")"
                             enabled: win.prefs.behaviour.lyrics
                             checked: !win.lyricSourcesOff.includes(modelData.key)
                             onToggled: win.prefs.behaviour.lyricSourcesOff = win.toggled(win.lyricSourcesOff, modelData.key, !checked)
@@ -464,14 +469,14 @@ QQC.ApplicationWindow {
                     }
                     QQC.ButtonGroup { id: openGroup }
                     QQC.RadioButton {
-                        Kirigami.FormData.label: "Open the panel:"
-                        text: "On click"
+                        Kirigami.FormData.label: win.tr("Open the panel:")
+                        text: win.tr("On click")
                         QQC.ButtonGroup.group: openGroup
                         checked: !win.prefs.behaviour.openOnHover
                         onToggled: win.prefs.behaviour.openOnHover = false
                     }
                     QQC.RadioButton {
-                        text: "When the pointer rests on it"
+                        text: win.tr("When the pointer rests on it")
                         QQC.ButtonGroup.group: openGroup
                         checked: win.prefs.behaviour.openOnHover
                         onToggled: win.prefs.behaviour.openOnHover = true
@@ -479,23 +484,23 @@ QQC.ApplicationWindow {
                 }
             }
             Page {
-                title: "Alerts"
+                title: win.tr("Alerts")
                 Kirigami.FormLayout {
                     Layout.fillWidth: true
                     Repeater {
                         model: [
-                            { key: "levels", label: "Volume and brightness (hides Plasma's box)" },
-                            { key: "notifications", label: "Notifications (hides Plasma's popups)" },
-                            { key: "privacy", label: "Microphone and camera in use" },
-                            { key: "devices", label: "Bluetooth devices connecting" },
-                            { key: "meetings", label: "Join button for meetings" },
-                            { key: "power", label: "Charger plugged in or out" },
-                            { key: "jobs", label: "Downloads and file copies" }
+                            { key: "levels", label: win.tr("Volume and brightness (hides Plasma's box)") },
+                            { key: "notifications", label: win.tr("Notifications (hides Plasma's popups)") },
+                            { key: "privacy", label: win.tr("Microphone and camera in use") },
+                            { key: "devices", label: win.tr("Bluetooth devices connecting") },
+                            { key: "meetings", label: win.tr("Join button for meetings") },
+                            { key: "power", label: win.tr("Charger plugged in or out") },
+                            { key: "jobs", label: win.tr("Downloads and file copies") }
                         ]
                         delegate: QQC.CheckBox {
                             required property var modelData
                             required property int index
-                            Kirigami.FormData.label: index === 0 ? "Show:" : ""
+                            Kirigami.FormData.label: index === 0 ? win.tr("Show:") : ""
                             text: modelData.label
                             checked: win.prefs.show[modelData.key]
                             onToggled: win.prefs.show[modelData.key] = checked
@@ -506,29 +511,29 @@ QQC.ApplicationWindow {
                     Item { Kirigami.FormData.isSection: true }
                     Repeater {
                         model: [
-                            { key: "levels", label: "Volume and brightness" },
-                            { key: "jobs", label: "Downloads and file copies" },
-                            { key: "privacy", label: "Microphone and camera in use" },
-                            { key: "devices", label: "Bluetooth devices connecting" },
-                            { key: "power", label: "Charger plugged in or out" },
-                            { key: "allNotifications", label: "Show all notifications" }
+                            { key: "levels", label: win.tr("Volume and brightness") },
+                            { key: "jobs", label: win.tr("Downloads and file copies") },
+                            { key: "privacy", label: win.tr("Microphone and camera in use") },
+                            { key: "devices", label: win.tr("Bluetooth devices connecting") },
+                            { key: "power", label: win.tr("Charger plugged in or out") },
+                            { key: "allNotifications", label: win.tr("Show all notifications") }
                         ]
                         delegate: QQC.CheckBox {
                             required property var modelData
                             required property int index
                             objectName: "fullScreen-" + modelData.key
-                            Kirigami.FormData.label: index === 0 ? "Over full-screen apps:" : ""
+                            Kirigami.FormData.label: index === 0 ? win.tr("Over full-screen apps:") : ""
                             text: modelData.label
                             checked: win.prefs.fullScreen[modelData.key]
                             onToggled: win.prefs.fullScreen[modelData.key] = checked
                         }
                     }
                     ColumnLayout {
-                        Kirigami.FormData.label: "Urgent apps:"
+                        Kirigami.FormData.label: win.tr("Urgent apps:")
                         spacing: 0
                         QQC.Label {
                             visible: win.knownApps.length === 0
-                            text: "Apps show up here once they send a notification."
+                            text: win.tr("Apps show up here once they send a notification.")
                             opacity: 0.7
                         }
                         Repeater {
@@ -561,21 +566,21 @@ QQC.ApplicationWindow {
                     Item { Kirigami.FormData.isSection: true }
                     QQC.CheckBox {
                         objectName: "historySave"
-                        Kirigami.FormData.label: "History:"
-                        text: "Save notifications"
+                        Kirigami.FormData.label: win.tr("History:")
+                        text: win.tr("Save notifications")
                         checked: win.prefs.history.save
                         onToggled: win.prefs.history.save = checked
                     }
                     QQC.ComboBox {
                         objectName: "historyDays"
-                        Kirigami.FormData.label: "Keep them for:"
+                        Kirigami.FormData.label: win.tr("Keep them for:")
                         enabled: win.prefs.history.save
                         textRole: "label"
                         valueRole: "days"
                         readonly property var choices: [
-                            { days: 1, label: "1 day" },
-                            { days: 7, label: "7 days" },
-                            { days: 30, label: "30 days" }
+                            { days: 1, label: win.tr("1 day") },
+                            { days: 7, label: win.tr("7 days") },
+                            { days: 30, label: win.tr("30 days") }
                         ]
                         model: choices
                         // indexOfValue() gives -1 before the model loads, so the index is found by hand.
@@ -585,15 +590,15 @@ QQC.ApplicationWindow {
                     // Switching a kind or an app off only stops new ones; what is saved stays.
                     Repeater {
                         model: [
-                            { key: "system", label: "System" },
-                            { key: "apps", label: "Apps" },
-                            { key: "others", label: "Others" }
+                            { key: "system", label: win.tr("System") },
+                            { key: "apps", label: win.tr("Apps") },
+                            { key: "others", label: win.tr("Others") }
                         ]
                         delegate: ColumnLayout {
                             id: kind
                             required property var modelData
                             required property int index
-                            Kirigami.FormData.label: index === 0 ? "Save from:" : ""
+                            Kirigami.FormData.label: index === 0 ? win.tr("Save from:") : ""
                             spacing: 0
                             QQC.CheckBox {
                                 objectName: "historyKind-" + kind.modelData.key
@@ -633,20 +638,20 @@ QQC.ApplicationWindow {
                 }
             }
             Page {
-                title: "When idle"
+                title: win.tr("When idle")
                 Kirigami.FormLayout {
                     Layout.fillWidth: true
                     QQC.ButtonGroup { id: idleGroup }
                     Repeater {
                         model: [
-                            { key: "glances", label: "Glances" },
-                            { key: "animation", label: "My animation" },
-                            { key: "nothing", label: "Nothing" }
+                            { key: "glances", label: win.tr("Glances") },
+                            { key: "animation", label: win.tr("My animation") },
+                            { key: "nothing", label: win.tr("Nothing") }
                         ]
                         delegate: QQC.RadioButton {
                             required property var modelData
                             required property int index
-                            Kirigami.FormData.label: index === 0 ? "Show:" : ""
+                            Kirigami.FormData.label: index === 0 ? win.tr("Show:") : ""
                             text: modelData.label
                             QQC.ButtonGroup.group: idleGroup
                             checked: win.prefs.idle.mode === modelData.key
@@ -655,54 +660,54 @@ QQC.ApplicationWindow {
                     }
                     QQC.CheckBox {
                         visible: win.prefs.idle.mode === "glances"
-                        Kirigami.FormData.label: "Glances:"
-                        text: "Events starting in 30 minutes or less"
+                        Kirigami.FormData.label: win.tr("Glances:")
+                        text: win.tr("Events starting in 30 minutes or less")
                         checked: win.prefs.idle.events
                         onToggled: win.prefs.idle.events = checked
                     }
                     QQC.CheckBox {
                         visible: win.prefs.idle.mode === "glances"
-                        text: "Battery (warns at 15% or less)"
+                        text: win.tr("Battery (warns at 15% or less)")
                         checked: win.prefs.idle.battery
                         onToggled: win.prefs.idle.battery = checked
                     }
                     QQC.CheckBox {
                         visible: win.prefs.idle.mode === "glances"
-                        text: "Time"
+                        text: win.tr("Time")
                         checked: win.prefs.idle.time
                         onToggled: win.prefs.idle.time = checked
                     }
                     QQC.CheckBox {
                         visible: win.prefs.idle.mode === "glances"
-                        text: "Weather"
+                        text: win.tr("Weather")
                         checked: win.prefs.idle.weather
                         onToggled: win.prefs.idle.weather = checked
                     }
                     QQC.CheckBox {
                         visible: win.prefs.idle.mode === "glances"
-                        text: "Pending system updates"
+                        text: win.tr("Pending system updates")
                         checked: win.prefs.idle.updates
                         onToggled: win.prefs.idle.updates = checked
                     }
                     QQC.CheckBox {
                         visible: win.prefs.idle.mode === "glances"
-                        text: "Next task from the To-Do list"
+                        text: win.tr("Next task from the To-Do list")
                         checked: win.prefs.idle.todo
                         onToggled: win.prefs.idle.todo = checked
                     }
                     QQC.ComboBox {
                         id: artPicker
                         visible: win.prefs.idle.mode === "animation"
-                        Kirigami.FormData.label: "Animation:"
+                        Kirigami.FormData.label: win.tr("Animation:")
                         readonly property string current: win.prefs.idle.animation || "builtin:aurora"
                         textRole: "label"
                         valueRole: "key"
                         model: [
-                            { key: "builtin:aurora", label: "Aurora" },
-                            { key: "builtin:wave", label: "Wave" },
-                            { key: "builtin:fireflies", label: "Fireflies" },
-                            { key: "builtin:cat", label: "Cat" },
-                            { key: "file", label: "My own GIF or WebP…" }
+                            { key: "builtin:aurora", label: win.tr("Aurora") },
+                            { key: "builtin:wave", label: win.tr("Wave") },
+                            { key: "builtin:fireflies", label: win.tr("Fireflies") },
+                            { key: "builtin:cat", label: win.tr("Cat") },
+                            { key: "file", label: win.tr("My own GIF or WebP…") }
                         ]
                         currentIndex: current.startsWith("builtin:") ? Math.max(0, indexOfValue(current)) : 4
                         onActivated: {
@@ -714,33 +719,33 @@ QQC.ApplicationWindow {
                     }
                     RowLayout {
                         visible: win.prefs.idle.mode === "animation" && !artPicker.current.startsWith("builtin:")
-                        Kirigami.FormData.label: "File:"
+                        Kirigami.FormData.label: win.tr("File:")
                         QQC.Label {
                             Layout.maximumWidth: 200
                             elide: Text.ElideMiddle
                             text: decodeURIComponent(artPicker.current.split("/").pop())
                         }
                         QQC.Button {
-                            text: "Change…"
+                            text: win.tr("Change…")
                             icon.name: "document-open"
                             onClicked: animationDialog.open()
                         }
                     }
                     QQC.Label {
                         visible: win.prefs.idle.mode === "animation"
-                        text: "Point at the island to see it play."
+                        text: win.tr("Point at the island to see it play.")
                         opacity: 0.7
                         font: Kirigami.Theme.smallFont
                     }
                     QQC.CheckBox {
                         visible: win.prefs.idle.mode === "animation"
-                        text: "Only play when the pointer is on the island"
+                        text: win.tr("Only play when the pointer is on the island")
                         checked: win.prefs.idle.animateOnHoverOnly
                         onToggled: win.prefs.idle.animateOnHoverOnly = checked
                     }
                     FileDialog {
                         id: animationDialog
-                        title: "Choose an animation"
+                        title: win.tr("Choose an animation")
                         nameFilters: ["Animations (*.gif *.webp)"]
                         onAccepted: win.prefs.idle.animation = selectedFile.toString()
                         onRejected: artPicker.currentIndex = artPicker.current.startsWith("builtin:") ? artPicker.indexOfValue(artPicker.current) : 4
@@ -748,40 +753,40 @@ QQC.ApplicationWindow {
                 }
             }
             Page {
-                title: "Calendar"
+                title: win.tr("Calendar")
                 Kirigami.FormLayout {
                     Layout.fillWidth: true
                     QQC.ComboBox {
                         objectName: "holidayCountry"
-                        Kirigami.FormData.label: "Holidays and festivals:"
+                        Kirigami.FormData.label: win.tr("Holidays and festivals:")
                         textRole: "label"
                         valueRole: "key"
                         readonly property string autoKey: L.holidayCountry("auto", Qt.locale().name)
-                        model: [{ key: "auto", label: "Automatic" + (autoKey ? " (" + L.holidayLabel(autoKey) + ")" : "") }, { key: "", label: "None" }]
+                        model: [{ key: "auto", label: win.tr("Automatic") + (autoKey ? " (" + L.holidayLabel(autoKey) + ")" : "") }, { key: "", label: win.tr("None") }]
                                .concat(L.HOLIDAY_COUNTRIES.map(c => ({ key: c.key, label: c.label })))
                         currentIndex: Math.max(0, model.findIndex(m => m.key === win.prefs.calendar.holidays))
                         onActivated: win.prefs.calendar.holidays = currentValue
                     }
                     QQC.CheckBox {
                         objectName: "observances"
-                        text: "Include festivals and religious days, not only public holidays"
+                        text: win.tr("Include festivals and religious days, not only public holidays")
                         enabled: L.holidayCountry(win.prefs.calendar.holidays, Qt.locale().name) !== ""
                         checked: win.prefs.calendar.observances
                         onToggled: win.prefs.calendar.observances = checked
                     }
                     SliderRow {
-                        Kirigami.FormData.label: "Check for changes every:"
+                        Kirigami.FormData.label: win.tr("Check for changes every:")
                         from: 5; to: 120; suffix: " min"
                         value: win.prefs.calendar.refreshMinutes
                         onMoved: v => win.prefs.calendar.refreshMinutes = v
                     }
                     // One child for the whole list: rows added later would otherwise land at the end of the form.
                     ColumnLayout {
-                        Kirigami.FormData.label: "Calendars:"
+                        Kirigami.FormData.label: win.tr("Calendars:")
                         Kirigami.FormData.labelAlignment: Qt.AlignTop
                         QQC.Label {
                             visible: win.calendarUrls.length === 0
-                            text: "None yet"
+                            text: win.tr("None yet")
                             opacity: 0.7
                         }
                         Repeater {
@@ -795,7 +800,7 @@ QQC.ApplicationWindow {
                                 }
                                 QQC.ToolButton {
                                     icon.name: "edit-delete-remove"
-                                    text: "Remove"
+                                    text: win.tr("Remove")
                                     display: QQC.AbstractButton.IconOnly
                                     QQC.ToolTip.text: text
                                     QQC.ToolTip.visible: hovered
@@ -808,18 +813,18 @@ QQC.ApplicationWindow {
                         }
                     }
                     RowLayout {
-                        Kirigami.FormData.label: "Add a calendar:"
+                        Kirigami.FormData.label: win.tr("Add a calendar:")
                         QQC.TextField {
                             id: newUrl
                             Layout.preferredWidth: 240
                             // It's a secret link, so keep it off the screen.
                             echoMode: TextInput.Password
-                            placeholderText: "Secret address in iCal format"
+                            placeholderText: win.tr("Secret address in iCal format")
                             onAccepted: addButton.clicked()
                         }
                         QQC.Button {
                             id: addButton
-                            text: "Add"
+                            text: win.tr("Add")
                             enabled: /^https?:\/\//.test(newUrl.text.trim()) && !win.calendarUrls.includes(newUrl.text.trim())
                             onClicked: {
                                 win.prefs.calendar.icsUrls = win.calendarUrls.concat([newUrl.text.trim()])
@@ -828,7 +833,7 @@ QQC.ApplicationWindow {
                         }
                     }
                     QQC.Label {
-                        text: "Google Calendar → Settings → your calendar → Integrate calendar → Secret address in iCal format."
+                        text: win.tr("Google Calendar → Settings → your calendar → Integrate calendar → Secret address in iCal format.")
                         wrapMode: Text.Wrap
                         Layout.maximumWidth: 300
                         opacity: 0.7
@@ -837,35 +842,35 @@ QQC.ApplicationWindow {
                     RowLayout {
                         visible: win.calendar !== null && win.calendarUrls.length > 0
                         QQC.Button {
-                            text: "Refresh now"
+                            text: win.tr("Refresh now")
                             icon.name: "view-refresh"
                             onClicked: win.calendar.refresh()
                         }
                         QQC.Label {
                             opacity: 0.7
                             text: !win.calendar || !win.calendar.loaded ? ""
-                                : win.calendar.ok ? "Updated " + Qt.formatTime(win.calendar.lastSuccess, "HH:mm")
-                                : "Couldn't reach the calendar"
+                                : win.calendar.ok ? win.tr("Updated {time}", { time: Qt.formatTime(win.calendar.lastSuccess, "HH:mm") })
+                                : win.tr("Couldn't reach the calendar")
                         }
                     }
                 }
             }
             Page {
-                title: "Weather"
+                title: win.tr("Weather")
                 Kirigami.FormLayout {
                     Layout.fillWidth: true
                     QQC.ButtonGroup { id: placeGroup }
                     QQC.RadioButton {
                         id: autoPlace
-                        Kirigami.FormData.label: "Location:"
-                        text: "Find automatically"
+                        Kirigami.FormData.label: win.tr("Location:")
+                        text: win.tr("Find automatically")
                         QQC.ButtonGroup.group: placeGroup
                         checked: win.prefs.weather.city === ""
                         onToggled: win.prefs.weather.city = ""
                     }
                     QQC.RadioButton {
                         id: manualPlace
-                        text: win.prefs.weather.city !== "" ? "Use " + win.prefs.weather.city : "Use a city I choose"
+                        text: win.prefs.weather.city !== "" ? win.tr("Use {city}", { city: win.prefs.weather.city }) : win.tr("Use a city I choose")
                         QQC.ButtonGroup.group: placeGroup
                         checked: win.prefs.weather.city !== ""
                     }
@@ -874,12 +879,12 @@ QQC.ApplicationWindow {
                         QQC.TextField {
                             id: cityField
                             Layout.preferredWidth: 200
-                            placeholderText: "City name"
+                            placeholderText: win.tr("City name")
                             onAccepted: findButton.clicked()
                         }
                         QQC.Button {
                             id: findButton
-                            text: "Find"
+                            text: win.tr("Find")
                             enabled: cityField.text.trim() !== ""
                             onClicked: win.findCity(cityField.text.trim())
                         }
@@ -891,7 +896,7 @@ QQC.ApplicationWindow {
                     }
                     QQC.ButtonGroup { id: unitGroup }
                     QQC.RadioButton {
-                        Kirigami.FormData.label: "Temperature:"
+                        Kirigami.FormData.label: win.tr("Temperature:")
                         text: "Celsius (°C)"
                         QQC.ButtonGroup.group: unitGroup
                         checked: !win.prefs.weather.fahrenheit
@@ -906,24 +911,24 @@ QQC.ApplicationWindow {
                 }
             }
             Page {
-                title: "Quick buttons"
+                title: win.tr("Quick buttons")
                 Kirigami.FormLayout {
                     Layout.fillWidth: true
                     Repeater {
                         model: [
-                            { key: "battery", label: "Battery" },
-                            { key: "volume", label: "Volume" },
-                            { key: "wifi", label: "Wi-Fi" },
-                            { key: "bluetooth", label: "Bluetooth" },
-                            { key: "dnd", label: "Do not disturb" },
-                            { key: "awake", label: "Keep screen awake" },
-                            { key: "screenshot", label: "Screenshot" },
-                            { key: "lock", label: "Lock screen" }
+                            { key: "battery", label: win.tr("Battery") },
+                            { key: "volume", label: win.tr("Volume") },
+                            { key: "wifi", label: win.tr("Wi-Fi") },
+                            { key: "bluetooth", label: win.tr("Bluetooth") },
+                            { key: "dnd", label: win.tr("Do not disturb") },
+                            { key: "awake", label: win.tr("Keep screen awake") },
+                            { key: "screenshot", label: win.tr("Screenshot") },
+                            { key: "lock", label: win.tr("Lock screen") }
                         ]
                         delegate: QQC.CheckBox {
                             required property var modelData
                             required property int index
-                            Kirigami.FormData.label: index === 0 ? "Show:" : ""
+                            Kirigami.FormData.label: index === 0 ? win.tr("Show:") : ""
                             text: modelData.label
                             checked: !win.hiddenButtons.includes(modelData.key)
                             onToggled: win.prefs.quickButtons.hidden = win.toggled(win.hiddenButtons, modelData.key, !checked)
@@ -932,16 +937,16 @@ QQC.ApplicationWindow {
                 }
             }
             Page {
-                title: "Quick links"
+                title: win.tr("Quick links")
                 Kirigami.FormLayout {
                     Layout.fillWidth: true
                     // One child for the whole list: rows added later would otherwise land at the end of the form.
                     ColumnLayout {
-                        Kirigami.FormData.label: "Links:"
+                        Kirigami.FormData.label: win.tr("Links:")
                         Kirigami.FormData.labelAlignment: Qt.AlignTop
                         QQC.Label {
                             visible: win.links.length === 0
-                            text: "None yet"
+                            text: win.tr("None yet")
                             opacity: 0.7
                         }
                         Repeater {
@@ -956,7 +961,7 @@ QQC.ApplicationWindow {
                                 }
                                 QQC.ToolButton {
                                     icon.name: "go-up"
-                                    text: "Move up"
+                                    text: win.tr("Move up")
                                     display: QQC.AbstractButton.IconOnly
                                     enabled: index > 0
                                     QQC.ToolTip.text: text
@@ -965,7 +970,7 @@ QQC.ApplicationWindow {
                                 }
                                 QQC.ToolButton {
                                     icon.name: "edit-delete-remove"
-                                    text: "Remove"
+                                    text: win.tr("Remove")
                                     display: QQC.AbstractButton.IconOnly
                                     QQC.ToolTip.text: text
                                     QQC.ToolTip.visible: hovered
@@ -976,21 +981,21 @@ QQC.ApplicationWindow {
                     }
                     QQC.TextField {
                         id: linkAddress
-                        Kirigami.FormData.label: "Add a link:"
+                        Kirigami.FormData.label: win.tr("Add a link:")
                         Layout.preferredWidth: 280
-                        placeholderText: "Site or folder, e.g. ~/Documents"
+                        placeholderText: win.tr("Site or folder, e.g. ~/Documents")
                         onAccepted: addLink.clicked()
                     }
                     RowLayout {
                         QQC.TextField {
                             id: linkName
                             Layout.preferredWidth: 200
-                            placeholderText: "Name (optional)"
+                            placeholderText: win.tr("Name (optional)")
                             onAccepted: addLink.clicked()
                         }
                         QQC.Button {
                             id: addLink
-                            text: "Add"
+                            text: win.tr("Add")
                             icon.name: "list-add"
                             enabled: linkAddress.text.trim() !== ""
                             onClicked: {
@@ -1002,36 +1007,49 @@ QQC.ApplicationWindow {
                         }
                     }
                     QQC.Label {
-                        text: "They open from the island: ⋯ → Quick links."
+                        text: win.tr("They open from the island: ⋯ → Quick links.")
                         opacity: 0.7
                         font: Kirigami.Theme.smallFont
                     }
                 }
             }
             Page {
-                title: "General"
+                title: win.tr("General")
                 Kirigami.FormLayout {
                     Layout.fillWidth: true
+                    QQC.ComboBox {
+                        objectName: "languagePicker"
+                        Kirigami.FormData.label: win.tr("Language:")
+                        textRole: "label"
+                        valueRole: "key"
+                        model: [
+                            { key: "system", label: win.tr("Follow system") },
+                            { key: "de", label: "Deutsch" },
+                            { key: "en", label: "English" }
+                        ]
+                        currentIndex: Math.max(0, model.findIndex(m => m.key === win.prefs.behaviour.language))
+                        onActivated: win.prefs.behaviour.language = currentValue
+                    }
                     QQC.Switch {
-                        Kirigami.FormData.label: "Start at login:"
+                        Kirigami.FormData.label: win.tr("Start at login:")
                         enabled: win.appConfig !== null
                         checked: win.appConfig ? win.appConfig.autostart : false
                         onToggled: if (win.appConfig) win.appConfig.autostart = checked
                     }
                     QQC.Button {
                         objectName: "tourAgain"
-                        Kirigami.FormData.label: "Getting started:"
-                        text: "Show the tour again"
+                        Kirigami.FormData.label: win.tr("Getting started:")
+                        text: win.tr("Show the tour again")
                         icon.name: "help-hint"
                         onClicked: win.tourRequested()
                     }
                     QQC.Button {
-                        text: "Reset to defaults"
+                        text: win.tr("Reset to defaults")
                         icon.name: "edit-reset"
                         onClicked: win.prefs.reset()
                     }
                     QQC.Label {
-                        text: "Your calendars and animation file are kept."
+                        text: win.tr("Your calendars and animation file are kept.")
                         opacity: 0.7
                         font: Kirigami.Theme.smallFont
                     }
@@ -1041,7 +1059,7 @@ QQC.ApplicationWindow {
     }
 
     function findCity(name) {
-        cityStatus.text = "Looking…"
+        cityStatus.text = win.tr("Looking…")
         const xhr = new XMLHttpRequest()
         xhr.onreadystatechange = function() {
             if (xhr.readyState !== XMLHttpRequest.DONE)
@@ -1052,13 +1070,13 @@ QQC.ApplicationWindow {
                 hit = results && results.length ? results[0] : null
             } catch (e) {}
             if (xhr.status !== 200 || !hit) {
-                cityStatus.text = xhr.status === 200 ? "No city found with that name" : "Couldn't search right now"
+                cityStatus.text = xhr.status === 200 ? win.tr("No city found with that name") : win.tr("Couldn't search right now")
                 return
             }
             win.prefs.weather.latitude = hit.latitude
             win.prefs.weather.longitude = hit.longitude
             win.prefs.weather.city = hit.name
-            cityStatus.text = "Using " + hit.name + (hit.country ? ", " + hit.country : "")
+            cityStatus.text = win.tr("Using {place}", { place: hit.name + (hit.country ? ", " + hit.country : "") })
             cityField.clear()
         }
         xhr.open("GET", "https://geocoding-api.open-meteo.com/v1/search?count=1&name=" + encodeURIComponent(name))

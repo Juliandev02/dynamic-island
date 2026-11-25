@@ -1,6 +1,7 @@
 import QtQuick
 import QtQuick.Controls as QQC
 import org.kde.kirigami as Kirigami
+import "i18n.js" as I18n
 
 // Connected Bluetooth devices and their battery, shown from the Bluetooth quick button.
 QQC.Popup {
@@ -22,7 +23,7 @@ QQC.Popup {
     contentItem: Column {
         spacing: 8
         Text {
-            text: "BLUETOOTH DEVICES"
+            text: I18n.t("BLUETOOTH DEVICES")
             color: palette.placeholderText
             font.pixelSize: 11
             font.weight: Font.DemiBold
@@ -31,7 +32,7 @@ QQC.Popup {
         Text {
             objectName: "btNone"
             visible: popup.devices.length === 0
-            text: "No devices connected"
+            text: I18n.t("No devices connected")
             color: palette.placeholderText
             font.pixelSize: 12
         }

@@ -1,6 +1,7 @@
 import QtQuick
 import org.kde.kirigami as Kirigami
 import "logic.js" as L
+import "i18n.js" as I18n
 
 // The first-run tour on the pill: one card per step of L.TOUR.
 Slide {
@@ -28,7 +29,7 @@ Slide {
         Text {
             objectName: "tourTitle"
             width: parent.width
-            text: parent.parent.step.title
+            text: I18n.t(parent.parent.step.title)
             color: palette.windowText
             font.pixelSize: 14
             font.weight: Font.DemiBold
@@ -36,7 +37,7 @@ Slide {
         Text {
             objectName: "tourBody"
             width: parent.width
-            text: parent.parent.step.body
+            text: I18n.t(parent.parent.step.body)
             color: palette.text
             font.pixelSize: 12
             wrapMode: Text.WordWrap
@@ -75,7 +76,7 @@ Slide {
             height: 26
             radius: 13
             color: skipArea.containsMouse ? Qt.rgba(palette.windowText.r, palette.windowText.g, palette.windowText.b, 0.12) : "transparent"
-            Text { id: skipText; anchors.centerIn: parent; text: "Skip"; color: palette.placeholderText; font.pixelSize: 12 }
+            Text { id: skipText; anchors.centerIn: parent; text: I18n.t("Skip"); color: palette.placeholderText; font.pixelSize: 12 }
             MouseArea { id: skipArea; anchors.fill: parent; hoverEnabled: true; cursorShape: Qt.PointingHandCursor; onClicked: island.skipTour() }
         }
         Rectangle {
@@ -87,7 +88,7 @@ Slide {
             Text {
                 id: nextText
                 anchors.centerIn: parent
-                text: island.tourStep + 1 < L.TOUR.length ? "Next" : "Got it"
+                text: island.tourStep + 1 < L.TOUR.length ? I18n.t("Next") : I18n.t("Got it")
                 color: "#ffffff"
                 font.pixelSize: 12
                 font.weight: Font.DemiBold

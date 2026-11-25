@@ -1,5 +1,6 @@
 import QtQuick
 import org.kde.kirigami as Kirigami
+import "i18n.js" as I18n
 
 // What the closed pill shows for a moment: a volume or brightness level, a notification, a device, the charger, a picked colour, or a finished job.
 Item {
@@ -157,7 +158,7 @@ Item {
             anchors.right: parent.right
             anchors.top: parent.top
             anchors.topMargin: 2
-            text: "now"
+            text: I18n.t("now")
             color: palette.placeholderText
             font.pixelSize: 12
         }
@@ -224,7 +225,7 @@ Item {
         }
         Text {
             anchors.verticalCenter: parent.verticalCenter
-            text: "Copied"
+            text: I18n.t("Copied")
             color: palette.placeholderText
             font.pixelSize: 12
         }
@@ -254,7 +255,7 @@ Item {
         }
         Text {
             anchors.verticalCenter: parent.verticalCenter
-            text: !view.a.plugged ? "On battery" : view.a.value >= 100 ? "Plugged in, full" : "Charging"
+            text: !view.a.plugged ? I18n.t("On battery") : view.a.value >= 100 ? I18n.t("Plugged in, full") : I18n.t("Charging")
             color: palette.placeholderText
             font.pixelSize: 12
         }
@@ -277,7 +278,7 @@ Item {
         Text {
             objectName: "numLockAlertText"
             anchors.verticalCenter: parent.verticalCenter
-            text: view.a.on ? "Num Lock on" : "Num Lock off"
+            text: view.a.on ? I18n.t("Num Lock on") : I18n.t("Num Lock off")
             color: palette.windowText
             font.pixelSize: 13
             font.weight: Font.DemiBold
@@ -301,7 +302,7 @@ Item {
         Text {
             objectName: "capsLockAlertText"
             anchors.verticalCenter: parent.verticalCenter
-            text: view.a.on ? "Caps Lock on" : "Caps Lock off"
+            text: view.a.on ? I18n.t("Caps Lock on") : I18n.t("Caps Lock off")
             color: palette.windowText
             font.pixelSize: 13
             font.weight: Font.DemiBold
@@ -334,7 +335,7 @@ Item {
         Text {
             objectName: "privacyAlertText"
             anchors.verticalCenter: parent.verticalCenter
-            text: view.a.device === "camera" ? "is using the camera" : "is using the microphone"
+            text: view.a.device === "camera" ? I18n.t("is using the camera") : I18n.t("is using the microphone")
             color: palette.placeholderText
             font.pixelSize: 12
         }

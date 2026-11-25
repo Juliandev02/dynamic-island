@@ -1,5 +1,6 @@
 import QtQuick
 import org.kde.kirigami as Kirigami
+import "i18n.js" as I18n
 
 // The To-Do tab. The list and its changes come from outside (TodoStore in the app).
 Column {
@@ -53,7 +54,7 @@ Column {
                 visible: taskInput.text === ""
                 anchors.verticalCenter: parent.verticalCenter
                 x: 10
-                text: "Add a task"
+                text: I18n.t("Add a task")
                 color: palette.mid
                 font.pixelSize: 12
             }
@@ -68,7 +69,7 @@ Column {
 
             Text {
                 anchors.centerIn: parent
-                text: "Add"
+                text: I18n.t("Add")
                 color: "#ffffff"
                 font.bold: true
                 font.pixelSize: 12
@@ -84,7 +85,7 @@ Column {
 
     Text {
         visible: todo.items.length === 0
-        text: "Nothing to do. Add a task above; the next one shows on the idle pill."
+        text: I18n.t("Nothing to do. Add a task above; the next one shows on the idle pill.")
         color: palette.placeholderText
         font.pixelSize: 12
     }
@@ -171,7 +172,7 @@ Column {
     Text {
         objectName: "todoClearDone"
         visible: todo.doneCount > 0
-        text: "Clear " + todo.doneCount + " done"
+        text: I18n.t("Clear {n} done", { n: todo.doneCount })
         color: clearArea.containsMouse ? palette.windowText : palette.placeholderText
         font.pixelSize: 12
         MouseArea {
