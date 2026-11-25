@@ -64,6 +64,7 @@ Window {
         calendar: calendarSource
         appConfig: AppConfig
         blur: blurSettings
+        inputRegion: InputRegion
         onTourRequested: {
             settingsWindow.close()
             island.startTour()
@@ -382,6 +383,7 @@ Window {
         lyrics: lyricsSource
         holidays: holidaySource
         observances: prefs.calendar.observances
+        mondayFirst: prefs.calendar.weekStart === "monday" || (prefs.calendar.weekStart === "auto" && (root.activeLang === "de" || Qt.locale().firstDayOfWeek === Qt.Monday))
         onTodoDone: id => todoStore.setDone(id, true)
         history: history
         newNotifications: history.newCount
@@ -412,6 +414,9 @@ Window {
         charging: SystemStatus.charging
         batteryState: SystemStatus.batteryState
         batteryMinutes: SystemStatus.batteryMinutes
+        batteryWatts: SystemStatus.batteryWatts
+        screenRecording: SystemStatus.screenRecording
+        screenRecorder: SystemStatus.screenRecorder
         idleMode: prefs.idle.mode
         glances: ({ events: prefs.idle.events, battery: prefs.idle.battery, time: prefs.idle.time, weather: prefs.idle.weather, updates: prefs.idle.updates, todo: prefs.idle.todo, meetings: prefs.show.meetings })
         updates: updatesWatcher.count
@@ -499,14 +504,25 @@ Window {
         onTriggered: island.hiddenByUser = false
     }
 
-    // A backstop for the charge level; plugging in and pulling the charger arrive from UPower at once.
+    // A backstop for the charge level and live wattage; refreshes faster while charging.
     Timer {
-        interval: 20000
+        interval: SystemStatus.charging ? 5000 : 20000
         repeat: true
         running: true
         triggeredOnStart: true
         onTriggered: SystemStatus.refreshBattery()
     }
+
+    // Checks for active Wayland screen recordings (Spectacle, wf-recorder, GPU Screen Recorder, etc.).
+    Timer {
+        interval: 3000
+        repeat: true
+        running: !SystemStatus.userIdle
+        onTriggered: SystemStatus.refreshRecording()
+    }
+
+    readonly property string selectedScreen: prefs.behaviour.screen
+    onSelectedScreenChanged: InputRegion.setScreen(root, selectedScreen)
 
     // Plasma's edit mode puts its toolbar where the island sits. It sends no change signal, so ask once a second while active.
     Timer {
@@ -537,6 +553,8 @@ Window {
     Component.onCompleted: {
         // The first To-Do version's list, moved over once.
         todoStore.importLegacy()
+        if (prefs.behaviour.screen)
+            InputRegion.setScreen(root, prefs.behaviour.screen)
         updateInputRegion()
         PlasmaSettings.setOsdEnabled(!islandLevels)
         PlasmaSettings.setPopupsEnabled(!islandNotifications)

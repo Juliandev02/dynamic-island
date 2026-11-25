@@ -15,6 +15,7 @@
 #include <QStandardPaths>
 #include <QTimer>
 #include <KIdleTime>
+#include <dirent.h>
 
 namespace
 {
@@ -110,6 +111,12 @@ SystemStatus::~SystemStatus()
         QDBusConnection::sessionBus().send(notifyCall(QStringLiteral("UnInhibit")) << m_dndCookie);
     if (m_awakeCookie)
         QDBusConnection::sessionBus().send(screenSaverCall(QStringLiteral("UnInhibit")) << m_awakeCookie);
+    if (m_nightColorCookie) {
+        auto msg = QDBusMessage::createMethodCall(QStringLiteral("org.kde.KWin.NightLight"), QStringLiteral("/org/kde/KWin/NightLight"),
+                                                  QStringLiteral("org.kde.KWin.NightLight"), QStringLiteral("uninhibit"));
+        msg << m_nightColorCookie;
+        QDBusConnection::sessionBus().send(msg);
+    }
 }
 
 std::optional<std::pair<int, bool>> SystemStatus::parseWpctlVolume(const QString &output)
@@ -162,6 +169,9 @@ void SystemStatus::refresh()
     readKeepAwake();
     readWifi();
     readBluetooth();
+    readNightColor();
+    readPowerProfile();
+    refreshRecording();
     run(QStringLiteral("wpctl"), {QStringLiteral("get-volume"), kSink}, [this](const QString &out) {
         if (const auto v = parseWpctlVolume(out)) {
             m_volume = v->first;
@@ -276,6 +286,18 @@ void SystemStatus::readBattery()
     m_batteryMinutes = !fake.isEmpty() || bat.isEmpty() ? -1
         : energy ? minutesLeft(m_batteryState, num(bat + QStringLiteral("energy_now")), num(bat + QStringLiteral("energy_full")), num(bat + QStringLiteral("power_now")))
                  : minutesLeft(m_batteryState, num(bat + QStringLiteral("charge_now")), num(bat + QStringLiteral("charge_full")), num(bat + QStringLiteral("current_now")));
+    const QString fakeWatts = qEnvironmentVariable("DYNAMIC_ISLAND_WATTS");
+    if (!fakeWatts.isEmpty()) {
+        m_batteryWatts = fakeWatts.toDouble();
+    } else if (!bat.isEmpty() && QFile::exists(bat + QStringLiteral("power_now"))) {
+        const qint64 uw = qAbs(num(bat + QStringLiteral("power_now")));
+        m_batteryWatts = uw > 0 ? uw / 1e6 : -1.0;
+    } else if (!bat.isEmpty() && QFile::exists(bat + QStringLiteral("current_now")) && QFile::exists(bat + QStringLiteral("voltage_now"))) {
+        const double w = double(qAbs(num(bat + QStringLiteral("current_now")))) * double(qAbs(num(bat + QStringLiteral("voltage_now")))) / 1e12;
+        m_batteryWatts = w > 0.01 ? w : -1.0;
+    } else {
+        m_batteryWatts = -1.0;
+    }
     Q_EMIT changed();
 }
 
@@ -437,4 +459,149 @@ void SystemStatus::pickColor()
 void SystemStatus::lock()
 {
     QProcess::startDetached(QStringLiteral("loginctl"), {QStringLiteral("lock-session")});
+}
+
+void SystemStatus::readNightColor()
+{
+    auto get = QDBusMessage::createMethodCall(QStringLiteral("org.kde.KWin.NightLight"), QStringLiteral("/org/kde/KWin/NightLight"),
+                                              QStringLiteral("org.freedesktop.DBus.Properties"), QStringLiteral("Get"));
+    get << QStringLiteral("org.kde.KWin.NightLight") << QStringLiteral("running");
+    callAsync(this, get, [this](const QDBusMessage &reply) {
+        if (reply.type() == QDBusMessage::ReplyMessage && !reply.arguments().isEmpty()) {
+            const bool on = reply.arguments().first().value<QDBusVariant>().variant().toBool();
+            if (on != m_nightColor) {
+                m_nightColor = on;
+                Q_EMIT changed();
+            }
+        }
+    });
+}
+
+void SystemStatus::toggleNightColor()
+{
+    if (m_nightColorCookie) {
+        auto msg = QDBusMessage::createMethodCall(QStringLiteral("org.kde.KWin.NightLight"), QStringLiteral("/org/kde/KWin/NightLight"),
+                                                  QStringLiteral("org.kde.KWin.NightLight"), QStringLiteral("uninhibit"));
+        msg << m_nightColorCookie;
+        QDBusConnection::sessionBus().send(msg);
+        m_nightColorCookie = 0;
+    } else if (m_nightColor) {
+        auto msg = QDBusMessage::createMethodCall(QStringLiteral("org.kde.KWin.NightLight"), QStringLiteral("/org/kde/KWin/NightLight"),
+                                                  QStringLiteral("org.kde.KWin.NightLight"), QStringLiteral("inhibit"));
+        callAsync(this, msg, [this](const QDBusMessage &reply) {
+            if (reply.type() == QDBusMessage::ReplyMessage && !reply.arguments().isEmpty())
+                m_nightColorCookie = reply.arguments().first().toUInt();
+            readNightColor();
+        });
+        return;
+    } else {
+        // Trigger KWin's global Night Color toggle when not inhibited by us.
+        auto msg = QDBusMessage::createMethodCall(QStringLiteral("org.kde.kglobalaccel"), QStringLiteral("/component/kwin"),
+                                                  QStringLiteral("org.kde.kglobalaccel.Component"), QStringLiteral("invokeShortcut"));
+        msg << QStringLiteral("Toggle Night Color");
+        QDBusConnection::sessionBus().send(msg);
+    }
+    QTimer::singleShot(250, this, &SystemStatus::readNightColor);
+}
+
+void SystemStatus::readPowerProfile()
+{
+    auto get = QDBusMessage::createMethodCall(QStringLiteral("net.hadess.PowerProfiles"), QStringLiteral("/net/hadess/PowerProfiles"),
+                                              QStringLiteral("org.freedesktop.DBus.Properties"), QStringLiteral("Get"));
+    get << QStringLiteral("net.hadess.PowerProfiles") << QStringLiteral("ActiveProfile");
+    callAsync(this, get, [this](const QDBusMessage &reply) {
+        if (reply.type() == QDBusMessage::ReplyMessage && !reply.arguments().isEmpty()) {
+            const QString profile = reply.arguments().first().value<QDBusVariant>().variant().toString();
+            if (profile != m_powerProfile) {
+                m_powerProfile = profile;
+                Q_EMIT changed();
+            }
+        }
+    }, QDBusConnection::systemBus());
+}
+
+void SystemStatus::cyclePowerProfile()
+{
+    const QString next = m_powerProfile == QLatin1String("power-saver") ? QStringLiteral("balanced")
+                       : m_powerProfile == QLatin1String("balanced")    ? QStringLiteral("performance")
+                                                                        : QStringLiteral("power-saver");
+    auto set = QDBusMessage::createMethodCall(QStringLiteral("net.hadess.PowerProfiles"), QStringLiteral("/net/hadess/PowerProfiles"),
+                                              QStringLiteral("org.freedesktop.DBus.Properties"), QStringLiteral("Set"));
+    set << QStringLiteral("net.hadess.PowerProfiles") << QStringLiteral("ActiveProfile") << QVariant::fromValue(QDBusVariant(next));
+    callAsync(this, set, [this, next](const QDBusMessage &reply) {
+        if (reply.type() == QDBusMessage::ReplyMessage) {
+            m_powerProfile = next;
+            Q_EMIT changed();
+        } else {
+            // Some machines have no "performance" profile; fall back to "power-saver".
+            auto fallback = QDBusMessage::createMethodCall(QStringLiteral("net.hadess.PowerProfiles"), QStringLiteral("/net/hadess/PowerProfiles"),
+                                                           QStringLiteral("org.freedesktop.DBus.Properties"), QStringLiteral("Set"));
+            fallback << QStringLiteral("net.hadess.PowerProfiles") << QStringLiteral("ActiveProfile")
+                     << QVariant::fromValue(QDBusVariant(QStringLiteral("power-saver")));
+            callAsync(this, fallback, [this](const QDBusMessage &) { readPowerProfile(); }, QDBusConnection::systemBus());
+        }
+    }, QDBusConnection::systemBus());
+}
+
+void SystemStatus::refreshRecording()
+{
+    const QString fake = qEnvironmentVariable("DYNAMIC_ISLAND_RECORDING");
+    if (!fake.isEmpty()) {
+        if (!m_screenRecording || m_screenRecorder != fake) {
+            m_screenRecording = true;
+            m_screenRecorder = fake;
+            Q_EMIT changed();
+        }
+        return;
+    }
+
+    // Fast /proc scan for dedicated Wayland/Linux screen recorders.
+    QString found;
+    if (DIR *proc = opendir("/proc")) {
+        static const QStringList kRecorders = {
+            QStringLiteral("wf-recorder"), QStringLiteral("wl-screenrec"),
+            QStringLiteral("gpu-screen-reco"), QStringLiteral("kooha"),
+            QStringLiteral("simplescreenrec")
+        };
+        while (const dirent *p = readdir(proc)) {
+            if (p->d_name[0] < '0' || p->d_name[0] > '9')
+                continue;
+            const QString comm = readFile(QStringLiteral("/proc/") + QLatin1String(p->d_name) + QStringLiteral("/comm")).trimmed();
+            for (const QString &r : kRecorders) {
+                if (comm == r) {
+                    found = comm == QLatin1String("gpu-screen-reco") ? QStringLiteral("GPU Screen Recorder")
+                          : comm == QLatin1String("simplescreenrec") ? QStringLiteral("SimpleScreenRecorder")
+                                                                     : comm;
+                    break;
+                }
+            }
+            if (!found.isEmpty())
+                break;
+        }
+        closedir(proc);
+    }
+
+    if (!found.isEmpty()) {
+        if (!m_screenRecording || m_screenRecorder != found) {
+            m_screenRecording = true;
+            m_screenRecorder = found;
+            Q_EMIT changed();
+        }
+        return;
+    }
+
+    // Also ask KDE Spectacle over D-Bus whether it is currently recording.
+    auto get = QDBusMessage::createMethodCall(QStringLiteral("org.kde.Spectacle"), QStringLiteral("/"),
+                                              QStringLiteral("org.freedesktop.DBus.Properties"), QStringLiteral("Get"));
+    get << QStringLiteral("org.kde.Spectacle") << QStringLiteral("Recording");
+    callAsync(this, get, [this](const QDBusMessage &reply) {
+        const bool rec = reply.type() == QDBusMessage::ReplyMessage && !reply.arguments().isEmpty()
+                      && reply.arguments().first().value<QDBusVariant>().variant().toBool();
+        const QString who = rec ? QStringLiteral("Spectacle") : QString();
+        if (rec != m_screenRecording || who != m_screenRecorder) {
+            m_screenRecording = rec;
+            m_screenRecorder = who;
+            Q_EMIT changed();
+        }
+    });
 }

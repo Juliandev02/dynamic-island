@@ -21,12 +21,20 @@ class SystemStatus : public QObject
     // minutes until full or empty at the current draw; -1 when it can't be told.
     Q_PROPERTY(QString batteryState MEMBER m_batteryState NOTIFY changed)
     Q_PROPERTY(int batteryMinutes MEMBER m_batteryMinutes NOTIFY changed)
+    // Live charge/discharge power draw in Watts, or -1 when unknown.
+    Q_PROPERTY(double batteryWatts MEMBER m_batteryWatts NOTIFY changed)
     Q_PROPERTY(int volume MEMBER m_volume NOTIFY changed)
     Q_PROPERTY(bool muted MEMBER m_muted NOTIFY changed)
     Q_PROPERTY(bool wifi MEMBER m_wifi NOTIFY changed)
     Q_PROPERTY(bool bluetooth MEMBER m_bluetooth NOTIFY changed)
     Q_PROPERTY(bool dnd MEMBER m_dnd NOTIFY changed)
     Q_PROPERTY(bool keepAwake MEMBER m_keepAwake NOTIFY changed)
+    Q_PROPERTY(bool nightColor MEMBER m_nightColor NOTIFY changed)
+    // Active power-profiles-daemon profile ("power-saver", "balanced", "performance"), or "" if unavailable.
+    Q_PROPERTY(QString powerProfile MEMBER m_powerProfile NOTIFY changed)
+    // Screen recording indicator (Spectacle D-Bus + dedicated Wayland screen recorders).
+    Q_PROPERTY(bool screenRecording MEMBER m_screenRecording NOTIFY changed)
+    Q_PROPERTY(QString screenRecorder MEMBER m_screenRecorder NOTIFY changed)
     Q_PROPERTY(bool editMode MEMBER m_editMode NOTIFY changed)
     // No keyboard or pointer input for a minute; the idle animation pauses.
     Q_PROPERTY(bool userIdle MEMBER m_userIdle NOTIFY changed)
@@ -69,6 +77,9 @@ public:
     Q_INVOKABLE void setBluetooth(bool on);
     Q_INVOKABLE void setDnd(bool on);
     Q_INVOKABLE void setKeepAwake(bool on);
+    Q_INVOKABLE void toggleNightColor();
+    Q_INVOKABLE void cyclePowerProfile();
+    Q_INVOKABLE void refreshRecording();
     Q_INVOKABLE void screenshot();
     Q_INVOKABLE void lock();
     // KWin's picker: the next click anywhere on screen; Escape cancels and nothing is sent.
@@ -92,12 +103,15 @@ private:
     void readKeepAwake();
     void readWifi();
     void readBluetooth();
+    void readNightColor();
+    void readPowerProfile();
     QString batteryDir();
 
     int m_battery = -1;
     bool m_charging = false;
     QString m_batteryState;
     int m_batteryMinutes = -1;
+    double m_batteryWatts = -1.0;
     int m_volume = 0;
     bool m_muted = false;
     bool m_wifi = false;
@@ -106,6 +120,11 @@ private:
     bool m_trayDnd = false;
     bool m_inhibited = false;
     bool m_keepAwake = false;
+    bool m_nightColor = false;
+    uint m_nightColorCookie = 0;
+    QString m_powerProfile;
+    bool m_screenRecording = false;
+    QString m_screenRecorder;
     bool m_editMode = false;
     bool m_userIdle = false;
     uint m_dndCookie = 0;

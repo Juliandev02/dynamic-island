@@ -21,6 +21,7 @@ Item {
     property var lyrics: null
     property var holidays: null
     property bool observances: true
+    property bool mondayFirst: false
     // The cover the pill's cover lands on: the Home card's or the Music tab's, or null.
     function coverTarget() {
         if (tab === "home")
@@ -416,6 +417,7 @@ Item {
                     calendar: panel.calendar
                     holidays: panel.holidays
                     observances: panel.observances
+                    mondayFirst: panel.mondayFirst
                     onDayPicked: day => upNext.day = day
                 }
             }

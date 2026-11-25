@@ -20,6 +20,8 @@ QQC.ApplicationWindow {
     property var appConfig: null
     // BlurSettings: KWin's blur strength. Passed in, like appConfig, so tests load without it.
     property var blur: null
+    // InputRegion: lists connected monitors for the multi-monitor selector.
+    property var inputRegion: null
     signal tourRequested()
 
     title: win.tr("Dynamic Island settings")
@@ -774,6 +776,19 @@ QQC.ApplicationWindow {
                         checked: win.prefs.calendar.observances
                         onToggled: win.prefs.calendar.observances = checked
                     }
+                    QQC.ComboBox {
+                        objectName: "weekStart"
+                        Kirigami.FormData.label: win.tr("Week starts on:")
+                        textRole: "label"
+                        valueRole: "key"
+                        model: [
+                            { key: "auto", label: win.tr("Automatic") },
+                            { key: "monday", label: win.tr("Monday") },
+                            { key: "sunday", label: win.tr("Sunday") }
+                        ]
+                        currentIndex: Math.max(0, model.findIndex(m => m.key === win.prefs.calendar.weekStart))
+                        onActivated: win.prefs.calendar.weekStart = currentValue
+                    }
                     SliderRow {
                         Kirigami.FormData.label: win.tr("Check for changes every:")
                         from: 5; to: 120; suffix: " min"
@@ -922,6 +937,8 @@ QQC.ApplicationWindow {
                             { key: "bluetooth", label: win.tr("Bluetooth") },
                             { key: "dnd", label: win.tr("Do not disturb") },
                             { key: "awake", label: win.tr("Keep screen awake") },
+                            { key: "nightcolor", label: win.tr("Night Color") },
+                            { key: "powerprofile", label: win.tr("Power profile") },
                             { key: "screenshot", label: win.tr("Screenshot") },
                             { key: "lock", label: win.tr("Lock screen") }
                         ]
@@ -1029,6 +1046,18 @@ QQC.ApplicationWindow {
                         ]
                         currentIndex: Math.max(0, model.findIndex(m => m.key === win.prefs.behaviour.language))
                         onActivated: win.prefs.behaviour.language = currentValue
+                    }
+                    QQC.ComboBox {
+                        objectName: "screenPicker"
+                        visible: win.inputRegion !== null
+                        Kirigami.FormData.label: win.tr("Monitor:")
+                        textRole: "label"
+                        valueRole: "key"
+                        model: [{ key: "", label: win.tr("Automatic (Primary)") }].concat(
+                            (win.inputRegion ? win.inputRegion.screenNames() : []).map(s => ({ key: s, label: s }))
+                        )
+                        currentIndex: Math.max(0, model.findIndex(m => m.key === win.prefs.behaviour.screen))
+                        onActivated: win.prefs.behaviour.screen = currentValue
                     }
                     QQC.Switch {
                         Kirigami.FormData.label: win.tr("Start at login:")

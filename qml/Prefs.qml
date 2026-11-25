@@ -10,7 +10,7 @@ QtObject {
     readonly property var defaults: ({
         style: { look: "notch", accent: "#0a84ff", coverTint: true, liveBars: true, theme: "dark", translucent: false, color: "", opacity: -1 },
         shape: { height: 32, idleWidth: 180, compactWidth: 260, radius: 12, ears: 8 },
-        behaviour: { cycleSeconds: 6, swipeHoldSeconds: 15, pausedMinutes: 5, openOnHover: false, coverLookup: true, lyrics: true, pillLyrics: true, lyricSourcesOff: [], animationSpeed: 100, language: "system" },
+        behaviour: { cycleSeconds: 6, swipeHoldSeconds: 15, pausedMinutes: 5, openOnHover: false, coverLookup: true, lyrics: true, pillLyrics: true, lyricSourcesOff: [], animationSpeed: 100, language: "system", screen: "" },
         weather: { city: "", latitude: 0, longitude: 0, fahrenheit: false },
         quickButtons: { hidden: [] },
         panel: { time: true, date: true },
@@ -67,6 +67,8 @@ QtObject {
         property int animationSpeed: prefs.defaults.behaviour.animationSpeed
         // UI language: "system" (follows Qt.locale()), "en" or "de".
         property string language: prefs.defaults.behaviour.language
+        // Monitor name (e.g. "eDP-1"), or "" for the primary monitor.
+        property string screen: prefs.defaults.behaviour.screen
         // The first-run tour has been seen or skipped.
         property bool tourSeen: false
     }
@@ -82,6 +84,8 @@ QtObject {
         property string holidays: "auto"
         // Festivals and religious days, besides public holidays.
         property bool observances: true
+        // First day of the week in the month calendar: "auto", "monday" or "sunday".
+        property string weekStart: "auto"
     }
 
     // An empty city means: find the location from the internet connection.

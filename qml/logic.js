@@ -185,13 +185,14 @@ function formatTime(us) {
     return h > 0 ? h + ":" + String(m).padStart(2, "0") + ":" + s : m + ":" + s
 }
 
-// Whole weeks from the Sunday on or before the 1st, only as many as the month needs.
-function monthGrid(year, month0) {
+// Whole weeks from the Sunday (or Monday, when mondayFirst is true) on or before the 1st, only as many as the month needs.
+function monthGrid(year, month0, mondayFirst) {
     const first = new Date(year, month0, 1)
-    const start = new Date(year, month0, 1 - first.getDay())
+    const lead = mondayFirst ? (first.getDay() + 6) % 7 : first.getDay()
+    const start = new Date(year, month0, 1 - lead)
     const cells = []
     const days = new Date(year, month0 + 1, 0).getDate()
-    const count = Math.ceil((first.getDay() + days) / 7) * 7
+    const count = Math.ceil((lead + days) / 7) * 7
     for (let i = 0; i < count; ++i) {
         const d = new Date(start.getFullYear(), start.getMonth(), start.getDate() + i)
         cells.push({ y: d.getFullYear(), m: d.getMonth(), d: d.getDate(), inMonth: d.getMonth() === month0 })
@@ -207,19 +208,25 @@ function eventWhen(ev) {
     return String(start.getHours()).padStart(2, "0") + ":" + String(start.getMinutes()).padStart(2, "0")
 }
 
-// The battery ring's tooltip: "82% · Charging · 1 h 20 min until full", "45% · 2 h 5 min left",
-// "100% · Fully charged". state is the battery's sysfs status; minutes -1 when unknown.
-function batteryTooltip(percent, state, minutes) {
+// The battery ring's tooltip: "82% · Charging · 42 W · 1 h 20 min until full", "45% · 2 h 5 min left",
+// "100% · Fully charged". state is the battery's sysfs status; minutes -1 when unknown; watts -1 when unknown.
+function batteryTooltip(percent, state, minutes, watts) {
     const time = minutes >= 0 ? (minutes >= 60 ? Math.floor(minutes / 60) + " h" + (minutes % 60 ? " " + (minutes % 60) + " min" : "") : minutes + " min") : ""
     const parts = [percent + "%"]
+    const power = watts > 0.5 ? Math.round(watts) + " W" : ""
     if (state === "Full" || (state !== "Discharging" && percent >= 100))
         parts.push(I18n.t("Fully charged"))
-    else if (state === "Charging")
-        parts.push(time ? I18n.t("Charging") + " · " + I18n.t("{time} until full", { time: time }) : I18n.t("Charging"))
-    else if (state === "Not charging")
+    else if (state === "Charging") {
+        parts.push(power ? I18n.t("Charging") + " · " + power : I18n.t("Charging"))
+        if (time)
+            parts.push(I18n.t("{time} until full", { time: time }))
+    } else if (state === "Not charging")
         parts.push(I18n.t("Plugged in, not charging"))
-    else if (state === "Discharging")
+    else if (state === "Discharging") {
+        if (power)
+            parts.push(power)
         parts.push(time ? I18n.t("{time} left", { time: time }) : I18n.t("On battery"))
+    }
     return parts.join(" · ")
 }
 

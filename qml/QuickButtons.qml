@@ -23,7 +23,8 @@ Row {
         width: battRow.implicitWidth + 24
         height: 30
         radius: 15
-        color: palette.base
+        color: SystemStatus.charging ? Qt.rgba(0.19, 0.82, 0.35, 0.18) : palette.base
+        border.color: SystemStatus.charging ? Qt.rgba(0.19, 0.82, 0.35, 0.4) : "transparent"
 
         Row {
             id: battRow
@@ -35,16 +36,22 @@ Row {
                 height: 16
                 readonly property int level: Math.round(SystemStatus.battery / 20) * 20
                 source: "battery-" + String(level).padStart(3, "0") + (SystemStatus.charging ? "-charging" : "")
-                color: palette.windowText
+                color: SystemStatus.charging ? "#30d158" : palette.windowText
                 isMask: true
             }
             Text {
                 anchors.verticalCenter: parent.verticalCenter
-                text: SystemStatus.battery + "%"
-                color: palette.windowText
+                text: SystemStatus.battery + "%" + (SystemStatus.charging && SystemStatus.batteryWatts > 0.5 ? " · " + Math.round(SystemStatus.batteryWatts) + " W" : "")
+                color: SystemStatus.charging ? "#30d158" : palette.windowText
                 font.pixelSize: 12
+                font.weight: SystemStatus.charging ? Font.DemiBold : Font.Normal
+                font.features: { "tnum": 1 }
             }
         }
+        HoverHandler { id: battPillHover }
+        QQC.ToolTip.visible: battPillHover.hovered
+        QQC.ToolTip.text: L.batteryTooltip(SystemStatus.battery, SystemStatus.batteryState, SystemStatus.batteryMinutes, SystemStatus.batteryWatts)
+        QQC.ToolTip.delay: 300
     }
 
     QuickButton {
@@ -146,6 +153,27 @@ Row {
         on: SystemStatus.keepAwake
         iconName: "system-suspend-inhibited"
         onClicked: SystemStatus.setKeepAwake(!SystemStatus.keepAwake)
+    }
+    QuickButton {
+        objectName: "qb-nightcolor"
+        label: I18n.t("Night Color")
+        on: SystemStatus.nightColor
+        iconName: "redshift-status-on"
+        onClicked: SystemStatus.toggleNightColor()
+    }
+    QuickButton {
+        objectName: "qb-powerprofile"
+        visible: SystemStatus.powerProfile !== "" && !quick.hidden.includes("powerprofile")
+        label: I18n.t("Power profile: {profile}", {
+            profile: SystemStatus.powerProfile === "power-saver" ? I18n.t("Power Saver")
+                   : SystemStatus.powerProfile === "performance" ? I18n.t("Performance")
+                   : I18n.t("Balanced")
+        })
+        on: SystemStatus.powerProfile === "performance" || SystemStatus.powerProfile === "power-saver"
+        iconName: SystemStatus.powerProfile === "power-saver" ? "battery-profile-powersave-symbolic"
+                : SystemStatus.powerProfile === "performance" ? "battery-profile-performance-symbolic"
+                : "battery-profile-balanced-symbolic"
+        onClicked: SystemStatus.cyclePowerProfile()
     }
     QuickButton {
         objectName: "qb-screenshot"

@@ -95,6 +95,7 @@ Item {
     // Holiday calendar (CalendarSource) for the panel's calendar and Up next.
     property var holidays: null
     property bool observances: true
+    property bool mondayFirst: false
     // Ticks a task off from the idle pill.
     signal todoDone(string id)
     // NotificationHistory for the Notifications tab, and its new count for the tab's badge.
@@ -137,9 +138,24 @@ Item {
     property var now: () => new Date()
     property int battery: -1
     property bool charging: false
-    // For the battery ring's tooltip.
+    // For the battery ring's tooltip and live charging display.
     property string batteryState: ""
     property int batteryMinutes: -1
+    property real batteryWatts: -1
+    // Live screen recording indicator (iOS-style pulsing red badge + elapsed timer).
+    property bool screenRecording: false
+    property string screenRecorder: ""
+    property int recordingSeconds: 0
+    onScreenRecordingChanged: recordingSeconds = 0
+    Timer {
+        interval: 1000
+        repeat: true
+        running: island.screenRecording
+        onTriggered: island.recordingSeconds++
+    }
+    readonly property bool showChargingChip: mode === "idle" && idleMode === "glances" && charging && battery >= 0 && batteryWatts > 0.5
+    readonly property bool chargingPeek: showChargingChip && hovered
+    readonly property real chargingChipWidth: showChargingChip && !chargingPeek ? chargingChip.width + 8 : 0
     // "glances", "animation" or "nothing".
     property string idleMode: "glances"
     property var glances: ({ events: true, battery: true, time: true, weather: true, updates: false, todo: true })
@@ -305,7 +321,7 @@ Item {
         if (panelLoader.item)
             panelLoader.item.tab = "shelf"
     }
-    readonly property bool showIndicators: micApps.length > 0 || cameraApps.length > 0 || shelf.length > 0
+    readonly property bool showIndicators: micApps.length > 0 || cameraApps.length > 0 || shelf.length > 0 || screenRecording
     readonly property real indicatorWidth: showIndicators ? indicators.implicitWidth + 10 : 0
     readonly property bool cyclePaused: swipePause.running
     property int wheelAccum: 0
@@ -314,13 +330,13 @@ Item {
     readonly property bool playing: player !== null && player.playbackStatus === L.Status.Playing
 
     readonly property var sizes: ({
-        idle: { w: (idleMode !== "glances" ? idleWidth
+        idle: chargingPeek ? { w: 300, h: 56, r: 20 } : { w: (idleMode !== "glances" ? idleWidth
                     : glance.kind === "event" ? Math.max(idleWidth, glance.link ? 290 : 230)
                     : glance.kind === "todo" ? Math.max(idleWidth, 250)
                     : glance.kind === "deviceLow" ? Math.max(idleWidth, 230)
                     : glance.kind === "clock" && glance.showBattery && glance.showTime && glance.showWeather ? Math.max(idleWidth, 200) + (glance.updates > 0 ? 44 : 0)
                     : glance.kind === "clock" && glance.updates > 0 ? idleWidth + 44
-                    : idleWidth) + indicatorWidth + historyChipWidth, h: barHeight, r: cornerRadius },
+                    : idleWidth) + indicatorWidth + historyChipWidth + chargingChipWidth + (hovered ? 8 : 0), h: barHeight, r: cornerRadius },
         compact: { w: compactPillWidth + indicatorWidth, h: barHeight, r: cornerRadius },
         // Music is wider for its previous / play-pause / next buttons.
         peek: activity === "jobs" ? { w: 360, h: 22 + jobRows * 42, r: 20 } : { w: activity === "music" ? 390 : 330, h: 60, r: 20 },
@@ -592,9 +608,9 @@ Item {
 
         Row {
             objectName: "glanceRow"
-            visible: island.idleMode === "glances" && island.glance.kind !== "none"
+            visible: island.idleMode === "glances" && island.glance.kind !== "none" && !island.chargingPeek
             anchors.centerIn: parent
-            anchors.horizontalCenterOffset: -(island.indicatorWidth + island.historyChipWidth) / 2 - (batteryRing.visible ? 10 : 0)
+            anchors.horizontalCenterOffset: -(island.indicatorWidth + island.historyChipWidth + island.chargingChipWidth) / 2 - (batteryRing.visible ? 10 : 0)
             spacing: 7
             readonly property string kind: island.glance.kind
             readonly property color tint: kind === "event" ? palette.accent : kind === "batteryLow" || kind === "deviceLow" ? "#ff6b6b" : palette.windowText
@@ -769,14 +785,14 @@ Item {
         Shape {
             id: batteryRing
             objectName: "batteryRing"
-            visible: island.idleMode === "glances" && island.glance.kind === "clock" && !!island.glance.showBattery
+            visible: island.idleMode === "glances" && island.glance.kind === "clock" && !!island.glance.showBattery && !island.chargingPeek
             anchors.verticalCenter: parent.verticalCenter
             anchors.right: parent.right
             anchors.rightMargin: 12 + island.indicatorWidth
             width: 14
             height: 14
             preferredRendererType: Shape.CurveRenderer
-            readonly property string tip: L.batteryTooltip(island.battery, island.batteryState, island.batteryMinutes)
+            readonly property string tip: L.batteryTooltip(island.battery, island.batteryState, island.batteryMinutes, island.batteryWatts)
             // Point at the ring for the battery's details.
             HoverHandler {
                 id: batteryHover
@@ -806,14 +822,116 @@ Item {
             }
         }
 
+        // Compact live charging wattage chip shown beside the battery ring while charging.
+        Rectangle {
+            id: chargingChip
+            objectName: "chargingChip"
+            visible: island.showChargingChip && !island.chargingPeek
+            anchors.verticalCenter: parent.verticalCenter
+            anchors.right: batteryRing.visible ? batteryRing.left : parent.right
+            anchors.rightMargin: batteryRing.visible ? 8 : 12 + island.indicatorWidth
+            width: chargingChipRow.implicitWidth + 12
+            height: 18
+            radius: 9
+            color: Qt.rgba(0.19, 0.82, 0.35, 0.2)
+            Row {
+                id: chargingChipRow
+                anchors.centerIn: parent
+                spacing: 3
+                Text {
+                    anchors.verticalCenter: parent.verticalCenter
+                    text: "⚡"
+                    color: "#30d158"
+                    font.pixelSize: 10
+                }
+                Text {
+                    anchors.verticalCenter: parent.verticalCenter
+                    text: Math.round(island.batteryWatts) + " W"
+                    color: "#30d158"
+                    font.pixelSize: 11
+                    font.weight: Font.DemiBold
+                    font.features: { "tnum": 1 }
+                }
+            }
+        }
+
+        // Expanded iOS-style live charging view when pointing at the idle pill while charging.
+        Item {
+            id: chargingPeekView
+            objectName: "chargingPeekView"
+            visible: island.chargingPeek
+            opacity: visible ? 1 : 0
+            Behavior on opacity { NumberAnimation { duration: 220; easing.type: Easing.OutCubic } }
+            anchors.fill: parent
+            anchors.leftMargin: 16
+            anchors.rightMargin: 16
+            anchors.topMargin: 8
+            anchors.bottomMargin: 8
+
+            Row {
+                anchors.left: parent.left
+                anchors.top: parent.top
+                spacing: 6
+                Text {
+                    anchors.verticalCenter: parent.verticalCenter
+                    text: "⚡"
+                    color: "#30d158"
+                    font.pixelSize: 14
+                }
+                Text {
+                    anchors.verticalCenter: parent.verticalCenter
+                    text: island.tr("Charging") + " · " + island.battery + "%"
+                    color: palette.windowText
+                    font.pixelSize: 13
+                    font.weight: Font.DemiBold
+                    font.features: { "tnum": 1 }
+                }
+            }
+            Text {
+                anchors.right: parent.right
+                anchors.top: parent.top
+                text: island.batteryWatts.toFixed(1) + " W"
+                color: "#30d158"
+                font.pixelSize: 13
+                font.weight: Font.Bold
+                font.features: { "tnum": 1 }
+            }
+            Text {
+                anchors.left: parent.left
+                anchors.bottom: chargeBarBg.top
+                anchors.bottomMargin: 5
+                text: island.batteryMinutes >= 0
+                    ? island.tr("{time} until full", { time: island.batteryMinutes >= 60 ? Math.floor(island.batteryMinutes / 60) + " h" + (island.batteryMinutes % 60 ? " " + (island.batteryMinutes % 60) + " min" : "") : island.batteryMinutes + " min" })
+                    : island.tr("Plugged in, full")
+                color: palette.placeholderText
+                font.pixelSize: 11
+            }
+            Rectangle {
+                id: chargeBarBg
+                anchors.left: parent.left
+                anchors.right: parent.right
+                anchors.bottom: parent.bottom
+                height: 4
+                radius: 2
+                color: palette.button
+                Rectangle {
+                    width: parent.width * Math.max(0, Math.min(100, island.battery)) / 100
+                    height: parent.height
+                    radius: 2
+                    color: "#30d158"
+                    Behavior on width { NumberAnimation { duration: 400; easing.type: Easing.OutCubic } }
+                }
+            }
+        }
+
         // Same shape as the jobs chip, in amber, so new notifications never read as a download or the battery.
         Rectangle {
             id: historyChip
             objectName: "historyChip"
-            visible: island.showHistoryChip
+            visible: island.showHistoryChip && !island.chargingPeek
             anchors.verticalCenter: parent.verticalCenter
-            anchors.right: batteryRing.visible ? batteryRing.left : parent.right
-            anchors.rightMargin: batteryRing.visible ? 8 : 12 + island.indicatorWidth
+            anchors.right: chargingChip.visible ? chargingChip.left : batteryRing.visible ? batteryRing.left : parent.right
+            anchors.rightMargin: chargingChip.visible || batteryRing.visible ? 8 : 12 + island.indicatorWidth
             width: historyRow.implicitWidth + 12
             height: 18
             radius: 9
@@ -1400,9 +1518,55 @@ Item {
         anchors.verticalCenter: parent.verticalCenter
         spacing: 6
         HoverHandler { id: indicatorHover }
-        QQC.ToolTip.visible: indicatorHover.hovered && L.privacyText(island.micApps, island.cameraApps) !== ""
-        QQC.ToolTip.text: L.privacyText(island.micApps, island.cameraApps)
+        QQC.ToolTip.visible: indicatorHover.hovered && (island.screenRecording || L.privacyText(island.micApps, island.cameraApps) !== "")
+        QQC.ToolTip.text: {
+            const parts = []
+            if (island.screenRecording)
+                parts.push(island.tr("Screen recording") + (island.screenRecorder ? " · " + island.screenRecorder : ""))
+            const priv = L.privacyText(island.micApps, island.cameraApps)
+            if (priv)
+                parts.push(priv)
+            return parts.join("\n")
+        }
         QQC.ToolTip.delay: 300
+
+        // iOS-style pulsing red screen-recording badge with live elapsed time.
+        Rectangle {
+            objectName: "recordingBadge"
+            visible: island.screenRecording
+            anchors.verticalCenter: parent.verticalCenter
+            width: recRow.implicitWidth + 12
+            height: 18
+            radius: 9
+            color: Qt.rgba(1.0, 0.27, 0.23, 0.22)
+            border.color: Qt.rgba(1.0, 0.27, 0.23, 0.45)
+            Row {
+                id: recRow
+                anchors.centerIn: parent
+                spacing: 5
+                Rectangle {
+                    anchors.verticalCenter: parent.verticalCenter
+                    width: 6
+                    height: 6
+                    radius: 3
+                    color: "#ff453a"
+                    SequentialAnimation on opacity {
+                        running: island.screenRecording
+                        loops: Animation.Infinite
+                        NumberAnimation { to: 0.25; duration: 700; easing.type: Easing.InOutSine }
+                        NumberAnimation { to: 1.0; duration: 700; easing.type: Easing.InOutSine }
+                    }
+                }
+                Text {
+                    anchors.verticalCenter: parent.verticalCenter
+                    text: L.formatTime(island.recordingSeconds * 1000000)
+                    color: "#ff6961"
+                    font.pixelSize: 11
+                    font.weight: Font.DemiBold
+                    font.features: { "tnum": 1 }
+                }
+            }
+        }
 
         Row {
             visible: island.shelf.length > 0
@@ -1535,6 +1699,7 @@ Item {
             lyrics: island.lyrics
             holidays: island.holidays
             observances: island.observances
+            mondayFirst: island.mondayFirst
             history: island.history
             newNotifications: island.newNotifications
             onNotificationsLeft: island.notificationsLeft()

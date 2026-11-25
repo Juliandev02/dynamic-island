@@ -14,7 +14,8 @@ Column {
     property var holidayDays: ({})
     property int year: new Date().getFullYear()
     property int month0: new Date().getMonth()
-    readonly property var cells: L.monthGrid(year, month0)
+    property bool mondayFirst: false
+    readonly property var cells: L.monthGrid(year, month0, mondayFirst)
     property var eventDays: ({})
     // The day clicked to see its events ({y, m, d}), or null; a second click lets it go.
     property var selected: null
@@ -105,7 +106,9 @@ Column {
         readonly property real cellW: cal.width / 7
 
         Repeater {
-            model: I18n.isGerman() ? ["S", "M", "D", "M", "D", "F", "S"] : ["S", "M", "T", "W", "T", "F", "S"]
+            model: cal.mondayFirst
+                ? (I18n.isGerman() ? ["M", "D", "M", "D", "F", "S", "S"] : ["M", "T", "W", "T", "F", "S", "S"])
+                : (I18n.isGerman() ? ["S", "M", "D", "M", "D", "F", "S"] : ["S", "M", "T", "W", "T", "F", "S"])
             delegate: Text {
                 required property string modelData
                 width: parent.cellW

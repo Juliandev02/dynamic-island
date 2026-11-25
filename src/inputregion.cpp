@@ -2,8 +2,10 @@
 
 #include <KWindowEffects>
 #include <LayerShellQt/Window>
+#include <QGuiApplication>
 #include <QPainterPath>
 #include <QRegion>
+#include <QScreen>
 
 QRect InputRegion::maskRect(const QRectF &rect)
 {
@@ -46,4 +48,38 @@ void InputRegion::setBlur(QWindow *window, const QRectF &rect, qreal radius, boo
         return;
     const QRegion region = roundedRegion(rect, radius);
     KWindowEffects::enableBlurBehind(window, on && !region.isEmpty(), region);
+}
+
+QStringList InputRegion::screenNames() const
+{
+    QStringList names;
+    for (QScreen *s : QGuiApplication::screens())
+        if (s && !s->name().isEmpty())
+            names.append(s->name());
+    return names;
+}
+
+void InputRegion::setScreen(QWindow *window, const QString &screenName)
+{
+    if (!window)
+        return;
+    QScreen *target = nullptr;
+    if (!screenName.isEmpty()) {
+        for (QScreen *s : QGuiApplication::screens()) {
+            if (s && s->name() == screenName) {
+                target = s;
+                break;
+            }
+        }
+    }
+    if (!target)
+        target = QGuiApplication::primaryScreen();
+    if (!target || window->screen() == target)
+        return;
+    const bool wasVisible = window->isVisible();
+    if (wasVisible)
+        window->hide();
+    window->setScreen(target);
+    if (wasVisible)
+        window->show();
 }

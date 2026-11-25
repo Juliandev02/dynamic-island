@@ -2,6 +2,7 @@
 
 #include <QObject>
 #include <QRectF>
+#include <QStringList>
 #include <QWindow>
 #include <qqmlintegration.h>
 
@@ -28,4 +29,8 @@ public:
     Q_INVOKABLE void setBlur(QWindow *window, const QRectF &rect, qreal radius, bool on);
     // The blur region: rect with rounded corners, as KWin takes it.
     static QRegion roundedRegion(const QRectF &rect, qreal radius);
+    // Connected monitor names (e.g. "eDP-1", "DP-1") for the multi-monitor picker.
+    Q_INVOKABLE QStringList screenNames() const;
+    // Moves the layer-shell window to the named monitor (or primary when empty).
+    Q_INVOKABLE void setScreen(QWindow *window, const QString &screenName);
 };
