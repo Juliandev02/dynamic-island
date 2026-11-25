@@ -19,7 +19,7 @@
 namespace
 {
 const QString kSink = QStringLiteral("@DEFAULT_AUDIO_SINK@");
-const QString kBattery = QStringLiteral("/sys/class/power_supply/BAT0/");
+const QString kPowerSupply = QStringLiteral("/sys/class/power_supply");
 // PolicyAgent inhibition type for screen dimming/locking.
 constexpr uint kChangeScreenSettings = 4;
 
@@ -42,9 +42,9 @@ QDBusMessage screenSaverCall(const QString &method)
 }
 
 // Plain messages skip QDBusInterface's introspection round trip; reads never block the UI.
-void callAsync(QObject *context, const QDBusMessage &msg, std::function<void(const QDBusMessage &)> done)
+void callAsync(QObject *context, const QDBusMessage &msg, std::function<void(const QDBusMessage &)> done, QDBusConnection bus = QDBusConnection::sessionBus())
 {
-    auto *watcher = new QDBusPendingCallWatcher(QDBusConnection::sessionBus().asyncCall(msg, 2000), context);
+    auto *watcher = new QDBusPendingCallWatcher(bus.asyncCall(msg, 2000), context);
     QObject::connect(watcher, &QDBusPendingCallWatcher::finished, context, [watcher, done] {
         done(watcher->reply());
         watcher->deleteLater();
@@ -86,13 +86,22 @@ SystemStatus::SystemStatus(QObject *parent)
 
 void SystemStatus::onBrightnessChanged(const QString &display, int value, const QString &, const QString &)
 {
+    const auto cached = m_maxBrightness.constFind(display);
+    if (cached != m_maxBrightness.cend()) {
+        if (*cached > 0)
+            Q_EMIT brightnessChanged(qRound(value * 100.0 / *cached));
+        return;
+    }
     auto get = QDBusMessage::createMethodCall(QStringLiteral("org.kde.ScreenBrightness"), QStringLiteral("/org/kde/ScreenBrightness/") + display,
                                               QStringLiteral("org.freedesktop.DBus.Properties"), QStringLiteral("Get"));
     get << QStringLiteral("org.kde.ScreenBrightness.Display") << QStringLiteral("MaxBrightness");
-    const QDBusReply<QDBusVariant> max = QDBusConnection::sessionBus().call(get);
-    const int top = max.isValid() ? max.value().variant().toInt() : 0;
-    if (top > 0)
-        Q_EMIT brightnessChanged(qRound(value * 100.0 / top));
+    callAsync(this, get, [this, display, value](const QDBusMessage &reply) {
+        const int top = !reply.arguments().isEmpty() ? reply.arguments().first().value<QDBusVariant>().variant().toInt() : 0;
+        if (top > 0) {
+            m_maxBrightness.insert(display, top);
+            Q_EMIT brightnessChanged(qRound(value * 100.0 / top));
+        }
+    });
 }
 
 SystemStatus::~SystemStatus()
@@ -151,6 +160,8 @@ void SystemStatus::refresh()
     readBattery();
     readDnd();
     readKeepAwake();
+    readWifi();
+    readBluetooth();
     run(QStringLiteral("wpctl"), {QStringLiteral("get-volume"), kSink}, [this](const QString &out) {
         if (const auto v = parseWpctlVolume(out)) {
             m_volume = v->first;
@@ -158,14 +169,58 @@ void SystemStatus::refresh()
             Q_EMIT changed();
         }
     });
-    run(QStringLiteral("nmcli"), {QStringLiteral("radio"), QStringLiteral("wifi")}, [this](const QString &out) {
-        m_wifi = parseNmcliRadio(out);
-        Q_EMIT changed();
-    });
-    run(QStringLiteral("bluetoothctl"), {QStringLiteral("show")}, [this](const QString &out) {
-        m_bluetooth = parseBluetoothPowered(out);
-        Q_EMIT changed();
-    });
+}
+
+void SystemStatus::readWifi()
+{
+    auto get = QDBusMessage::createMethodCall(QStringLiteral("org.freedesktop.NetworkManager"), QStringLiteral("/org/freedesktop/NetworkManager"),
+                                              QStringLiteral("org.freedesktop.DBus.Properties"), QStringLiteral("Get"));
+    get << QStringLiteral("org.freedesktop.NetworkManager") << QStringLiteral("WirelessEnabled");
+    callAsync(this, get, [this](const QDBusMessage &reply) {
+        if (reply.type() == QDBusMessage::ReplyMessage && !reply.arguments().isEmpty()) {
+            m_wifi = reply.arguments().first().value<QDBusVariant>().variant().toBool();
+            Q_EMIT changed();
+            return;
+        }
+        run(QStringLiteral("nmcli"), {QStringLiteral("radio"), QStringLiteral("wifi")}, [this](const QString &out) {
+            m_wifi = parseNmcliRadio(out);
+            Q_EMIT changed();
+        });
+    }, QDBusConnection::systemBus());
+}
+
+void SystemStatus::readBluetooth()
+{
+    auto get = QDBusMessage::createMethodCall(QStringLiteral("org.bluez"), QStringLiteral("/org/bluez/hci0"),
+                                              QStringLiteral("org.freedesktop.DBus.Properties"), QStringLiteral("Get"));
+    get << QStringLiteral("org.bluez.Adapter1") << QStringLiteral("Powered");
+    callAsync(this, get, [this](const QDBusMessage &reply) {
+        if (reply.type() == QDBusMessage::ReplyMessage && !reply.arguments().isEmpty()) {
+            m_bluetooth = reply.arguments().first().value<QDBusVariant>().variant().toBool();
+            Q_EMIT changed();
+            return;
+        }
+        run(QStringLiteral("bluetoothctl"), {QStringLiteral("show")}, [this](const QString &out) {
+            m_bluetooth = parseBluetoothPowered(out);
+            Q_EMIT changed();
+        });
+    }, QDBusConnection::systemBus());
+}
+
+QString SystemStatus::batteryDir()
+{
+    if (m_batteryProbed)
+        return m_batteryDir;
+    m_batteryProbed = true;
+    const QDir dir(kPowerSupply);
+    for (const QString &name : dir.entryList(QDir::Dirs | QDir::NoDotAndDotDot, QDir::Name)) {
+        const QString path = dir.filePath(name) + QLatin1Char('/');
+        if (readFile(path + QStringLiteral("type")).trimmed() == QLatin1String("Battery") && QFile::exists(path + QStringLiteral("capacity"))) {
+            m_batteryDir = path;
+            break;
+        }
+    }
+    return m_batteryDir;
 }
 
 bool SystemStatus::isChargerChange(const QVariantMap &changed)
@@ -199,26 +254,28 @@ void SystemStatus::readBattery()
 {
     // DYNAMIC_ISLAND_BATTERY=12 pretends the battery is at 12% and unplugged, to preview the low-battery glance.
     const QString fake = qEnvironmentVariable("DYNAMIC_ISLAND_BATTERY");
+    const QString bat = fake.isEmpty() ? batteryDir() : QString();
     const auto [capacity, charging] = !fake.isEmpty() ? parseBattery(fake, QStringLiteral("Discharging"))
-                                                      : parseBattery(readFile(kBattery + QStringLiteral("capacity")), readFile(kBattery + QStringLiteral("status")));
+                                      : !bat.isEmpty() ? parseBattery(readFile(bat + QStringLiteral("capacity")), readFile(bat + QStringLiteral("status")))
+                                                       : std::pair{-1, false};
     // No battery (a desktop): -1 keeps it out of the pill instead of reading as 0%.
-    m_battery = fake.isEmpty() && !QFile::exists(kBattery + QStringLiteral("capacity")) ? -1 : capacity;
+    m_battery = fake.isEmpty() && bat.isEmpty() ? -1 : capacity;
     m_charging = charging;
     if (fake.isEmpty()) {
         // The charger's own flag flips the moment it's plugged or pulled; the battery's status lags.
         QList<std::pair<QString, bool>> supplies;
-        const QDir dir(QStringLiteral("/sys/class/power_supply"));
+        const QDir dir(kPowerSupply);
         for (const QString &name : dir.entryList(QDir::Dirs | QDir::NoDotAndDotDot))
             supplies.append({readFile(dir.filePath(name) + QStringLiteral("/type")).trimmed(), readFile(dir.filePath(name) + QStringLiteral("/online")).trimmed() == QLatin1String("1")});
-        m_charging = pluggedIn(supplies, readFile(kBattery + QStringLiteral("status")));
+        m_charging = pluggedIn(supplies, bat.isEmpty() ? QString() : readFile(bat + QStringLiteral("status")));
     }
-    m_batteryState = fake.isEmpty() ? readFile(kBattery + QStringLiteral("status")).trimmed() : QStringLiteral("Discharging");
+    m_batteryState = !fake.isEmpty() ? QStringLiteral("Discharging") : bat.isEmpty() ? QString() : readFile(bat + QStringLiteral("status")).trimmed();
     // Energy (µWh, µW) on most laptops; charge (µAh, µA) on some.
-    const bool energy = QFile::exists(kBattery + QStringLiteral("energy_now"));
+    const bool energy = !bat.isEmpty() && QFile::exists(bat + QStringLiteral("energy_now"));
     auto num = [](const QString &path) { return readFile(path).trimmed().toLongLong(); };
-    m_batteryMinutes = !fake.isEmpty() ? -1
-        : energy ? minutesLeft(m_batteryState, num(kBattery + QStringLiteral("energy_now")), num(kBattery + QStringLiteral("energy_full")), num(kBattery + QStringLiteral("power_now")))
-                 : minutesLeft(m_batteryState, num(kBattery + QStringLiteral("charge_now")), num(kBattery + QStringLiteral("charge_full")), num(kBattery + QStringLiteral("current_now")));
+    m_batteryMinutes = !fake.isEmpty() || bat.isEmpty() ? -1
+        : energy ? minutesLeft(m_batteryState, num(bat + QStringLiteral("energy_now")), num(bat + QStringLiteral("energy_full")), num(bat + QStringLiteral("power_now")))
+                 : minutesLeft(m_batteryState, num(bat + QStringLiteral("charge_now")), num(bat + QStringLiteral("charge_full")), num(bat + QStringLiteral("current_now")));
     Q_EMIT changed();
 }
 

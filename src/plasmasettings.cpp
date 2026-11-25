@@ -66,3 +66,10 @@ bool PlasmaSettings::popupsEnabled(const QString &desktopEntry) const
     KConfig rc(file(QStringLiteral("plasmanotifyrc")), KConfig::NoGlobals);
     return KConfigGroup(&rc, QStringLiteral("Applications")).group(desktopEntry).readEntry("ShowPopups", true);
 }
+
+qreal PlasmaSettings::animationDurationFactor() const
+{
+    KConfig rc(file(QStringLiteral("kdeglobals")), KConfig::NoGlobals);
+    const qreal factor = KConfigGroup(&rc, QStringLiteral("KDE")).readEntry("AnimationDurationFactor", 1.0);
+    return factor < 0.0 ? 0.0 : factor;
+}

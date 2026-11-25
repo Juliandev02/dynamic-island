@@ -16,7 +16,7 @@ Item {
         height: seekArea.containsMouse || seekArea.pressed ? 4 : 2
         radius: height / 2
         color: Qt.rgba(palette.windowText.r, palette.windowText.g, palette.windowText.b, 0.18)
-        Behavior on height { NumberAnimation { duration: 120 } }
+        Behavior on height { NumberAnimation { duration: 160; easing.type: Easing.OutCubic } }
         Rectangle {
             objectName: "peekSeekFill"
             width: parent.width * peekSeek.fraction

@@ -58,7 +58,7 @@ Slide {
                 height: 6
                 radius: 3
                 color: index === island.tourStep ? palette.windowText : Qt.rgba(palette.windowText.r, palette.windowText.g, palette.windowText.b, 0.3)
-                Behavior on width { NumberAnimation { duration: 150 } }
+                Behavior on width { NumberAnimation { duration: 220; easing.type: Easing.OutCubic } }
             }
         }
     }

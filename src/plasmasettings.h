@@ -22,6 +22,8 @@ public:
     // For an app notifying for the first time; its first popup may still show.
     Q_INVOKABLE void hidePopupsFor(const QString &desktopEntry);
     bool popupsEnabled(const QString &desktopEntry) const;
+    // KDE's global animation duration multiplier (kdeglobals [KDE] AnimationDurationFactor; 0 = off).
+    Q_INVOKABLE qreal animationDurationFactor() const;
 
 private:
     QString file(const QString &name) const;

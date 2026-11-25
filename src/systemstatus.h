@@ -1,6 +1,7 @@
 #pragma once
 
 #include <QDateTime>
+#include <QHash>
 #include <QObject>
 #include <QStringList>
 #include <functional>
@@ -89,6 +90,9 @@ private:
     void readBattery();
     void readDnd();
     void readKeepAwake();
+    void readWifi();
+    void readBluetooth();
+    QString batteryDir();
 
     int m_battery = -1;
     bool m_charging = false;
@@ -106,4 +110,7 @@ private:
     bool m_userIdle = false;
     uint m_dndCookie = 0;
     uint m_awakeCookie = 0;
+    QString m_batteryDir;
+    bool m_batteryProbed = false;
+    QHash<QString, int> m_maxBrightness;
 };

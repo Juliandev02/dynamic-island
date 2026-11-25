@@ -6,7 +6,7 @@ import "logic.js" as L
 Window {
     id: root
 
-    width: 900
+    width: Math.min(1100, Screen.width > 0 ? Screen.width : 900)
     height: 460
     visible: false
     color: "transparent"
@@ -28,6 +28,16 @@ Window {
         traceStep("first frame drawn")
     }
 
+    property bool inputRegionPending: false
+    function scheduleInputRegionUpdate() {
+        if (inputRegionPending)
+            return
+        inputRegionPending = true
+        Qt.callLater(() => {
+            inputRegionPending = false
+            updateInputRegion()
+        })
+    }
     function updateInputRegion() {
         InputRegion.set(root, island.inputRect)
         updateBlur()
@@ -338,9 +348,9 @@ Window {
         customColor: prefs.style.color || "transparent"
         fillOpacity: L.islandOpacity(prefs.style.opacity, prefs.style.translucent) / 100
         blurBehind: prefs.style.translucent
-        onBlurRadiusChanged: root.updateBlur()
-        onTranslucentChanged: root.updateBlur()
-        onBlurBehindChanged: root.updateBlur()
+        onBlurRadiusChanged: root.scheduleInputRegionUpdate()
+        onTranslucentChanged: root.scheduleInputRegionUpdate()
+        onBlurBehindChanged: root.scheduleInputRegionUpdate()
         audioLevel: prefs.style.liveBars ? soundSource.outputLevel : -1
         pillLyrics: prefs.behaviour.pillLyrics
         coverTinted: coverColor.valid
@@ -388,6 +398,7 @@ Window {
         cycleInterval: prefs.behaviour.cycleSeconds * 1000
         swipeHold: prefs.behaviour.swipeHoldSeconds * 1000
         openOnHover: prefs.behaviour.openOnHover
+        animationScale: prefs.behaviour.animationSpeed / 100 * PlasmaSettings.animationDurationFactor()
         quickHidden: L.toList(prefs.quickButtons.hidden)
         panelTime: prefs.panel.time
         panelDate: prefs.panel.date
@@ -435,7 +446,7 @@ Window {
             SystemStatus.refresh()
             calendarSource.refreshIfStale()
         }
-        onInputRectChanged: root.updateInputRegion()
+        onInputRectChanged: root.scheduleInputRegionUpdate()
         coveredByFullScreen: fullScreen.active
         onWantsFrontChanged: InputRegion.setLayer(root, wantsFront)
     }
@@ -491,11 +502,11 @@ Window {
         onTriggered: SystemStatus.refreshBattery()
     }
 
-    // Plasma's edit mode puts its toolbar where the island sits. It sends no change signal, so ask once a second.
+    // Plasma's edit mode puts its toolbar where the island sits. It sends no change signal, so ask once a second while active.
     Timer {
         interval: 1000
         repeat: true
-        running: true
+        running: !SystemStatus.userIdle
         onTriggered: SystemStatus.refreshEditMode()
     }
 

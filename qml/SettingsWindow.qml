@@ -422,6 +422,13 @@ QQC.ApplicationWindow {
                         value: win.prefs.behaviour.pausedMinutes
                         onMoved: v => win.prefs.behaviour.pausedMinutes = v
                     }
+                    SliderRow {
+                        objectName: "animationSpeed"
+                        Kirigami.FormData.label: "Animation duration:"
+                        from: 0; to: 150; suffix: "%"
+                        value: win.prefs.behaviour.animationSpeed
+                        onMoved: v => win.prefs.behaviour.animationSpeed = v
+                    }
                     QQC.CheckBox {
                         Kirigami.FormData.label: "Missing song covers:"
                         text: "Look up on iTunes (sends the artist and title to Apple)"

@@ -249,12 +249,27 @@ Item {
             touched = false
         }
         if (open) {
+            panelUnloadTimer.stop()
             alert = null
             menuOpen = false
+            if (panelLoader.item) {
+                panelLoader.item.tab = requestedTab || "home"
+                panelReveal.restart()
+                panelReady()
+                flyCoverIn()
+            } else {
+                panelLoader.active = true
+            }
         } else {
             requestedTab = ""
+            panelReveal.stop()
+            panelLoader.opacity = 0
+            if (panelLoader.item)
+                panelLoader.item.onPanelClosed()
             if (flyer.visible)
                 landCover()
+            if (panelLoader.active)
+                panelUnloadTimer.restart()
         }
     }
     Timer {
@@ -302,7 +317,7 @@ Item {
         // 14 + 18: panelLoader's top and bottom margins.
         tour: { w: 420, h: 116, r: 26 },
         menu: { w: 290, h: 16 + menuRows.length * 36, r: 22 },
-        open: { w: 860, h: panelLoader.item && panelLoader.item.fitHeight > 0 ? panelLoader.item.fitHeight + 14 + 18 : 420, r: 30 }
+        open: { w: Math.min(860, parent && parent.width > 0 ? parent.width - 20 : 860), h: panelLoader.item && panelLoader.item.fitHeight > 0 ? panelLoader.item.fitHeight + 14 + 18 : 420, r: 30 }
     })
     // Behind a full-screen app the pill folds into a sliver at the top edge; an alert grows out of it.
     property bool coveredByFullScreen: false
@@ -321,16 +336,30 @@ Item {
     // Tucked behind a full-screen app the pill is a zero-height sliver; its contents mustn't spill out.
     clip: tucked
 
-    // Folding away uses no spring, so it never dips below the top edge. A pill growing or
-    // shrinking for a lyric line settles quietly instead.
+    // Shared fluid motion curve (silky deceleration without rubbery overshoot).
+    // animationScale multiplies all transition durations (0 = instant, 1 = default).
+    property real animationScale: 1.0
+    readonly property var fluidCurve: [0.22, 1.0, 0.36, 1.0, 1.0, 1.0]
+    readonly property int morphDuration: Math.max(0, Math.round(460 * animationScale))
+    readonly property int tuckDuration: Math.max(0, Math.round(340 * animationScale))
+    readonly property int lyricDuration: Math.max(0, Math.round(320 * animationScale))
+
+    // Folding away glides cleanly without overshoot; normal state changes use the shared fluid curve
+    // so width, height and corner radii always stay in lockstep.
     Behavior on width {
         NumberAnimation {
-            duration: island.showsLyricLine ? 240 : (island.tucked ? 260 : 350)
-            easing.type: island.showsLyricLine ? Easing.OutCubic : (island.tucked ? Easing.InCubic : Easing.OutBack)
-            easing.overshoot: 1.2
+            duration: island.showsLyricLine ? island.lyricDuration : (island.tucked ? island.tuckDuration : island.morphDuration)
+            easing.type: island.tucked ? Easing.InOutCubic : Easing.BezierSpline
+            easing.bezierCurve: island.fluidCurve
         }
     }
-    Behavior on height { NumberAnimation { duration: island.tucked ? 260 : 350; easing.type: island.tucked ? Easing.InCubic : Easing.OutBack; easing.overshoot: 1.2 } }
+    Behavior on height {
+        NumberAnimation {
+            duration: island.tucked ? island.tuckDuration : island.morphDuration
+            easing.type: island.tucked ? Easing.InOutCubic : Easing.BezierSpline
+            easing.bezierCurve: island.fluidCurve
+        }
+    }
 
     // The position timer only runs while playing, so fetch once on open.
     onModeChanged: {
@@ -423,17 +452,34 @@ Item {
         objectName: "islandShape"
         // 0 is notch, 1 is pill.
         property real p: island.pill ? 1 : 0
-        Behavior on p { NumberAnimation { duration: 450; easing.type: Easing.InOutCubic } }
+        Behavior on p { NumberAnimation { duration: Math.max(0, Math.round(500 * island.animationScale)); easing.type: Easing.BezierSpline; easing.bezierCurve: island.fluidCurve } }
         property real notchR: island.size.r
         property real pillR: Math.min(island.size.h / 2, Math.max(island.size.r, island.barHeight / 2))
-        Behavior on notchR { NumberAnimation { duration: 350 } }
-        Behavior on pillR { NumberAnimation { duration: 350 } }
+        Behavior on notchR {
+            NumberAnimation {
+                duration: island.tucked ? island.tuckDuration : island.morphDuration
+                easing.type: island.tucked ? Easing.InOutCubic : Easing.BezierSpline
+                easing.bezierCurve: island.fluidCurve
+            }
+        }
+        Behavior on pillR {
+            NumberAnimation {
+                duration: island.tucked ? island.tuckDuration : island.morphDuration
+                easing.type: island.tucked ? Easing.InOutCubic : Easing.BezierSpline
+                easing.bezierCurve: island.fluidCurve
+            }
+        }
         readonly property real r: notchR + (pillR - notchR) * p
         readonly property real ear: island.earSize * Math.max(0, 1 - 2 * p)
         readonly property real topR: r * Math.max(0, 2 * p - 1)
         // Only one of the two is ever non-zero, so one arc serves both.
         readonly property real corner: ear + topR
         readonly property int turn: topR > 0 ? PathArc.Clockwise : PathArc.Counterclockwise
+        // Clamped radii for the rendered path so arcs never cross or glitch when height/width are tiny.
+        readonly property real safeR: Math.max(0, Math.min(r, island.height / 2, island.width / 2))
+        readonly property real safeCorner: Math.max(0, Math.min(corner, Math.max(0, island.height - safeR), island.width / 2))
+        readonly property real safeTopR: topR > 0 ? safeCorner : 0
+        readonly property real safeEar: topR > 0 ? 0 : safeCorner
         anchors.fill: parent
         preferredRendererType: Shape.CurveRenderer
 
@@ -444,15 +490,15 @@ Item {
             readonly property bool tintEdge: island.coverTinted && island.musicShown
             strokeWidth: tintEdge || island.lightLook ? 1 : -1
             strokeColor: tintEdge ? Qt.rgba(island.coverTint.r, island.coverTint.g, island.coverTint.b, 0.55) : Qt.rgba(0, 0, 0, 0.14)
-            startX: notch.topR - notch.ear; startY: 0
-            PathLine { x: island.width + notch.ear - notch.topR; y: 0 }
-            PathArc { x: island.width; y: notch.corner; radiusX: notch.corner; radiusY: notch.corner; direction: notch.turn }
-            PathLine { x: island.width; y: island.height - notch.r }
-            PathArc { x: island.width - notch.r; y: island.height; radiusX: notch.r; radiusY: notch.r }
-            PathLine { x: notch.r; y: island.height }
-            PathArc { x: 0; y: island.height - notch.r; radiusX: notch.r; radiusY: notch.r }
-            PathLine { x: 0; y: notch.corner }
-            PathArc { x: notch.topR - notch.ear; y: 0; radiusX: notch.corner; radiusY: notch.corner; direction: notch.turn }
+            startX: notch.safeTopR - notch.safeEar; startY: 0
+            PathLine { x: island.width + notch.safeEar - notch.safeTopR; y: 0 }
+            PathArc { x: island.width; y: notch.safeCorner; radiusX: notch.safeCorner; radiusY: notch.safeCorner; direction: notch.turn }
+            PathLine { x: island.width; y: Math.max(notch.safeCorner, island.height - notch.safeR) }
+            PathArc { x: island.width - notch.safeR; y: island.height; radiusX: notch.safeR; radiusY: notch.safeR }
+            PathLine { x: notch.safeR; y: island.height }
+            PathArc { x: 0; y: Math.max(notch.safeCorner, island.height - notch.safeR); radiusX: notch.safeR; radiusY: notch.safeR }
+            PathLine { x: 0; y: notch.safeCorner }
+            PathArc { x: notch.safeTopR - notch.safeEar; y: 0; radiusX: notch.safeCorner; radiusY: notch.safeCorner; direction: notch.turn }
         }
     }
 
@@ -890,9 +936,12 @@ Item {
             readonly property int side: island.mode === "peek" ? 34 : 18
             width: side
             height: side
-            radius: Math.round(side * 0.36)
+            radius: Math.round(width * 0.36)
             x: island.mode === "peek" ? 12 : 8
-            y: (island.height - side) / 2
+            y: (island.height - height) / 2
+            Behavior on width { NumberAnimation { duration: island.morphDuration; easing.type: Easing.BezierSpline; easing.bezierCurve: island.fluidCurve } }
+            Behavior on height { NumberAnimation { duration: island.morphDuration; easing.type: Easing.BezierSpline; easing.bezierCurve: island.fluidCurve } }
+            Behavior on x { NumberAnimation { duration: island.morphDuration; easing.type: Easing.BezierSpline; easing.bezierCurve: island.fluidCurve } }
             source: island.player ? island.artUrl : ""
             fallbackIcon: island.player ? island.player.iconName || island.player.desktopEntry || "" : ""
         }
@@ -901,6 +950,8 @@ Item {
             id: musicBars
             objectName: "bars"
             visible: island.mode === "compact"
+            opacity: visible ? 1 : 0
+            Behavior on opacity { NumberAnimation { duration: 200; easing.type: Easing.OutCubic } }
             running: island.playing
             level: island.audioLevel
             color: island.coverTinted ? island.coverTint : palette.brightText
@@ -916,6 +967,8 @@ Item {
             id: compactTitle
             objectName: "compactTitle"
             visible: island.mode === "compact"
+            opacity: visible ? 1 : 0
+            Behavior on opacity { NumberAnimation { duration: 200; easing.type: Easing.OutCubic } }
             anchors.left: art.right
             anchors.leftMargin: 8
             anchors.right: musicBars.left
@@ -1000,6 +1053,8 @@ Item {
 
         Column {
             visible: island.mode === "peek"
+            opacity: visible ? 1 : 0
+            Behavior on opacity { NumberAnimation { duration: 240; easing.type: Easing.OutCubic } }
             anchors.left: art.right
             anchors.leftMargin: 10
             anchors.right: peekPrevious.left
@@ -1028,6 +1083,8 @@ Item {
         PeekSeekBar {
             island: island
             visible: island.mode === "peek" && island.player !== null && island.player.length > 0
+            opacity: visible ? 1 : 0
+            Behavior on opacity { NumberAnimation { duration: 240; easing.type: Easing.OutCubic } }
             anchors.left: art.left
             anchors.right: peekNext.right
             anchors.bottom: parent.bottom
@@ -1040,7 +1097,8 @@ Item {
             objectName: "peekPrevious"
             visible: island.mode === "peek"
             enabled: island.player !== null && island.player.canGoPrevious !== false
-            opacity: enabled ? 1 : 0.4
+            opacity: visible ? (enabled ? 1 : 0.4) : 0
+            Behavior on opacity { NumberAnimation { duration: 240; easing.type: Easing.OutCubic } }
             anchors.right: peekPlayPause.left
             anchors.verticalCenter: parent.verticalCenter
             iconName: "media-skip-backward"
@@ -1051,6 +1109,8 @@ Item {
             id: peekPlayPause
             objectName: "peekPlayPause"
             visible: island.mode === "peek"
+            opacity: visible ? 1 : 0
+            Behavior on opacity { NumberAnimation { duration: 240; easing.type: Easing.OutCubic } }
             anchors.right: peekNext.left
             anchors.verticalCenter: parent.verticalCenter
             iconName: island.playing ? "media-playback-pause" : "media-playback-start"
@@ -1062,7 +1122,8 @@ Item {
             objectName: "peekNext"
             visible: island.mode === "peek"
             enabled: island.player !== null && island.player.canGoNext !== false
-            opacity: enabled ? 1 : 0.4
+            opacity: visible ? (enabled ? 1 : 0.4) : 0
+            Behavior on opacity { NumberAnimation { duration: 240; easing.type: Easing.OutCubic } }
             anchors.right: parent.right
             anchors.rightMargin: 8
             anchors.verticalCenter: parent.verticalCenter
@@ -1086,6 +1147,9 @@ Item {
             anchors.verticalCenter: parent.verticalCenter
             width: side
             height: side
+            Behavior on width { NumberAnimation { duration: island.morphDuration; easing.type: Easing.BezierSpline; easing.bezierCurve: island.fluidCurve } }
+            Behavior on height { NumberAnimation { duration: island.morphDuration; easing.type: Easing.BezierSpline; easing.bezierCurve: island.fluidCurve } }
+            Behavior on x { NumberAnimation { duration: island.morphDuration; easing.type: Easing.BezierSpline; easing.bezierCurve: island.fluidCurve } }
             source: "chronometer"
             color: island.timer && island.timer.pomodoro ? island.timerTint : palette.windowText
             isMask: true
@@ -1095,6 +1159,8 @@ Item {
             id: timerCountdown
             objectName: "timerText"
             visible: island.mode === "compact"
+            opacity: visible ? 1 : 0
+            Behavior on opacity { NumberAnimation { duration: 200; easing.type: Easing.OutCubic } }
             anchors.right: parent.right
             anchors.rightMargin: 12 + island.indicatorWidth
             anchors.verticalCenter: parent.verticalCenter
@@ -1107,6 +1173,8 @@ Item {
 
         Column {
             visible: island.mode === "peek"
+            opacity: visible ? 1 : 0
+            Behavior on opacity { NumberAnimation { duration: 240; easing.type: Easing.OutCubic } }
             anchors.left: timerIcon.right
             anchors.leftMargin: 12
             anchors.verticalCenter: parent.verticalCenter
@@ -1128,6 +1196,8 @@ Item {
         ControlButton {
             objectName: "peekTimerToggle"
             visible: island.mode === "peek"
+            opacity: visible ? 1 : 0
+            Behavior on opacity { NumberAnimation { duration: 240; easing.type: Easing.OutCubic } }
             anchors.right: parent.right
             anchors.rightMargin: 8
             anchors.verticalCenter: parent.verticalCenter
@@ -1389,12 +1459,37 @@ Item {
             flyer.fly(art, target, panelLoader.item)
     }
 
+    // Keeps the panel warm in memory briefly after closing so reopening has zero build hitch.
+    Timer {
+        id: panelUnloadTimer
+        interval: 30000
+        onTriggered: if (!island.open) panelLoader.active = false
+    }
+
     Loader {
         id: panelLoader
-        active: island.open
+        active: false
+        visible: island.open
+        clip: true
+        opacity: 0
         onLoaded: {
+            if (!island.open)
+                return
+            panelReveal.restart()
             island.panelReady()
             island.flyCoverIn()
+        }
+        SequentialAnimation {
+            id: panelReveal
+            PauseAnimation { duration: Math.max(0, Math.round(60 * island.animationScale)) }
+            NumberAnimation {
+                target: panelLoader
+                property: "opacity"
+                from: 0
+                to: 1
+                duration: Math.max(0, Math.round(240 * island.animationScale))
+                easing.type: Easing.OutCubic
+            }
         }
         focus: true
         anchors.fill: parent

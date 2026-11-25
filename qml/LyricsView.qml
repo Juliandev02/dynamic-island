@@ -68,6 +68,7 @@ Item {
     // Moves the page so the sung line rests at restAt; chained, every line starts where it was
     // and travels home after its turn.
     function follow(chain) {
+        wheelScroll.stop()
         const row = rows.itemAt(Math.max(0, current))
         if (!row)
             return
@@ -213,6 +214,15 @@ Item {
             }
         }
     }
+    // Smooth manual wheel scrolling that accumulates rapid ticks cleanly.
+    property real wheelTargetY: 0
+    NumberAnimation {
+        id: wheelScroll
+        target: list
+        property: "contentY"
+        duration: 180
+        easing.type: Easing.OutCubic
+    }
     // One click area over the whole list picks the line under the pointer, also while the page
     // is moving. The wheel still scrolls the list.
     MouseArea {
@@ -228,7 +238,12 @@ Item {
         }
         onWheel: wheel => {
             view.readingUntil = Date.now() + 3000
-            list.contentY = Math.max(0, Math.min(list.contentHeight - list.height, list.contentY - wheel.angleDelta.y / 2))
+            const base = wheelScroll.running ? view.wheelTargetY : list.contentY
+            const maxY = Math.max(0, list.contentHeight - list.height)
+            view.wheelTargetY = Math.max(0, Math.min(maxY, base - wheel.angleDelta.y / 2))
+            wheelScroll.stop()
+            wheelScroll.to = view.wheelTargetY
+            wheelScroll.start()
         }
     }
 

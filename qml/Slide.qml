@@ -1,21 +1,25 @@
 import QtQuick
 
-// Content of one of the island's states: fades and slides in when shown, out when not.
+// Content of one of the island's states: fades and settles gently in when shown, out when not.
 Item {
     id: slide
     property bool shown
     anchors.fill: parent
+    clip: true
     opacity: shown ? 1 : 0
     visible: opacity > 0
-    // Old content leaves fast and the new one fades in after it, so they never overlap visibly.
+    // Old content leaves cleanly and the new one fades in smoothly after it, so they never overlap visibly.
     Behavior on opacity {
         SequentialAnimation {
-            PauseAnimation { duration: slide.shown ? 90 : 0 }
-            NumberAnimation { duration: slide.shown ? 180 : 90 }
+            PauseAnimation { duration: slide.shown ? 80 : 0 }
+            NumberAnimation {
+                duration: slide.shown ? 240 : 120
+                easing.type: slide.shown ? Easing.OutCubic : Easing.OutQuad
+            }
         }
     }
     transform: Translate {
-        x: slide.shown ? 0 : 12
-        Behavior on x { NumberAnimation { duration: 200; easing.type: Easing.OutCubic } }
+        y: slide.shown ? 0 : -4
+        Behavior on y { NumberAnimation { duration: 280; easing.type: Easing.OutCubic } }
     }
 }

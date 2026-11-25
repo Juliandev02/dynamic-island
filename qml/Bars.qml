@@ -33,6 +33,10 @@ Row {
             anchors.bottom: parent.bottom
             // Reads running so it settles back to 3 when the loop stops; an assignment would break the binding.
             height: bars.live ? L.barHeight(bars.level, bar.index, bars.phase) : (bars.running, 3)
+            Behavior on height {
+                enabled: bars.live
+                NumberAnimation { duration: 90; easing.type: Easing.OutQuad }
+            }
 
             SequentialAnimation on height {
                 running: bars.running && !bars.live

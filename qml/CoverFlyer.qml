@@ -64,15 +64,18 @@ Item {
         running: false
         from: 0
         to: 1
-        duration: 380
-        easing.type: Easing.OutCubic
+        duration: 440
+        easing.type: Easing.BezierSpline
+        easing.bezierCurve: [0.22, 1.0, 0.36, 1.0, 1.0, 1.0]
     }
     FrameAnimation {
         running: flyer.visible
         onTriggered: {
             flyer.frame++
             // Lands once it has arrived and the island has stopped growing.
-            if (!flight.running && flyer.island.width === flyer.island.size.w && flyer.island.height === flyer.island.size.h)
+            if (!flight.running
+                && Math.abs(flyer.island.width - flyer.island.size.w) < 0.5
+                && Math.abs(flyer.island.height - flyer.island.size.h) < 0.5)
                 flyer.land()
         }
     }

@@ -111,6 +111,14 @@ Item {
         // Closing the panel ends any undo offer; its image file (if any) can go.
         finishUndo()
     }
+    // Called when the cached panel is hidden, so state resets just as if it were closed fresh.
+    function onPanelClosed() {
+        menuOpen = false
+        finishUndo()
+        musicTab.showLyrics = false
+        if (tab !== "home")
+            tab = "home"
+    }
     signal colorPickRequested()
     signal copyRequested(string text)
     signal linkRequested(string url)
@@ -243,7 +251,7 @@ Item {
                     // One animated value drives the name, spacing, padding and background together,
                     // so the pill never lags behind the name sliding out.
                     property real grow: selected ? 1 : 0
-                    Behavior on grow { NumberAnimation { duration: 280; easing.type: Easing.OutCubic } }
+                    Behavior on grow { NumberAnimation { duration: 320; easing.type: Easing.BezierSpline; easing.bezierCurve: [0.22, 1.0, 0.36, 1.0, 1.0, 1.0] } }
                     readonly property bool lit: modelData.key === "more" && panel.menuOpen
                     objectName: modelData.divider ? "" : "tab-" + (modelData.name || modelData.key)
                     // Icons only; the open tab slides out to show its name.
@@ -595,7 +603,7 @@ Item {
         objectName: "undoBar"
         visible: opacity > 0
         opacity: panel.pendingUndo ? 1 : 0
-        Behavior on opacity { NumberAnimation { duration: 150 } }
+        Behavior on opacity { NumberAnimation { duration: 200; easing.type: Easing.OutCubic } }
         z: 20
         anchors.horizontalCenter: parent.horizontalCenter
         anchors.bottom: parent.bottom
@@ -647,6 +655,8 @@ Item {
         id: moreMenu
         objectName: "moreMenu"
         visible: panel.menuOpen
+        opacity: visible ? 1 : 0
+        Behavior on opacity { NumberAnimation { duration: 180; easing.type: Easing.OutCubic } }
         z: 10
         x: tabs.width - width
         y: tabs.height + 6

@@ -15,12 +15,16 @@ Item {
     readonly property bool hasButtons: a.kind === "notification" && !!a.buttons && a.buttons.length > 0
 
     anchors.fill: parent
+    clip: true
     opacity: shown ? 1 : 0
     visible: opacity > 0
     Behavior on opacity {
         SequentialAnimation {
-            PauseAnimation { duration: view.shown ? 90 : 0 }
-            NumberAnimation { duration: view.shown ? 180 : 90 }
+            PauseAnimation { duration: view.shown ? 80 : 0 }
+            NumberAnimation {
+                duration: view.shown ? 220 : 120
+                easing.type: view.shown ? Easing.OutCubic : Easing.OutQuad
+            }
         }
     }
 
@@ -50,7 +54,7 @@ Item {
                 height: parent.height
                 radius: 3
                 color: view.a.muted ? palette.mid : palette.windowText
-                Behavior on width { NumberAnimation { duration: 120 } }
+                Behavior on width { NumberAnimation { duration: 140; easing.type: Easing.OutCubic } }
             }
         }
         Text {
